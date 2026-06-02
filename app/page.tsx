@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { Header } from "@/src/components/layout/Header";
 import { Palette } from "@/src/components/canvas/Palette";
@@ -11,8 +11,10 @@ import { useBuilderSetup } from "@/src/components/canvas/useBuilderSetup";
 import { generateKey, flattenKeys } from "@/src/serializer/key";
 import { expandGroup } from "@/src/serializer/groups";
 import { serialize } from "@/src/serializer/serialize";
+import { deserialize } from "@/src/serializer/deserialize";
 import { downloadJson } from "@/src/bridge/export";
-import type { GroupPayload } from "@/src/contract/types";
+import { createBridge } from "@/src/bridge/postMessage";
+import type { GroupPayload, FormPayload } from "@/src/contract/types";
 
 export default function Home() {
   const [mode, setMode] = useState<"build" | "preview">("build");
@@ -26,6 +28,72 @@ export default function Home() {
     deleteEntity,
     moveEntity,
   } = useBuilderSetup();
+
+  // Bridge lifecycle
+  useEffect(() => {
+    const bridge = createBridge(
+      (payload: FormPayload) => {
+        const native = deserialize(payload);
+        builderStore.setData({
+          schema: native,
+          entitiesAttributesErrors: {},
+          schemaError: undefined,
+        });
+      },
+      (payload: GroupPayload) => {
+        setStagedGroups((prev) => [
+          ...prev.filter((g) => g.id !== payload.groupId),
+          { id: payload.groupId, label: payload.groupId, payload },
+        ]);
+      },
+    );
+
+    const cleanup = bridge.attach();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT") return;
+
+      if (e.key === "Delete" || e.key === "Backspace") {
+        if (selectedEntityId) {
+          e.preventDefault();
+          deleteEntity(selectedEntityId);
+        }
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+        e.preventDefault();
+        const schema = builderStore.getSchema();
+        const payload = serialize(schema);
+        bridge.emitSaved("*", payload);
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key === "z") {
+        e.preventDefault();
+        // coltorapps doesn't expose undo directly; could be added via event store
+      }
+
+      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        if (!selectedEntityId) return;
+        e.preventDefault();
+        const current = builderStore.getSchema().root;
+        const idx = current.indexOf(selectedEntityId);
+        if (idx === -1) return;
+        const dir = e.key === "ArrowUp" ? -1 : 1;
+        const newIdx = Math.max(0, Math.min(current.length - 1, idx + dir));
+        if (newIdx !== idx) {
+          moveEntity(selectedEntityId, newIdx);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      cleanup();
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [builderStore, deleteEntity, moveEntity, selectedEntityId]);
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
@@ -91,8 +159,8 @@ export default function Home() {
     const schema = builderStore.getSchema();
     const payload = serialize(schema);
     const json = JSON.stringify(payload, null, 2);
-    console.log("[save] Serialized form:", json);
-    // Bridge attach will be wired in Phase 10
+    console.log("[save]", json);
+    // In-iframe emission is handled via the bridge's emitSaved in keydown handler
   }, [builderStore]);
 
   return (

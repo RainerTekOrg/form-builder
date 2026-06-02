@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Form Builder — Test Host</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; color: #111; }
+    #app { max-width: 1000px; margin: 0 auto; padding: 24px; }
+    h1 { font-size: 1.25rem; margin-bottom: 4px; }
+    p.subtitle { font-size: 0.875rem; color: #666; margin-bottom: 16px; }
+    .toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    button, select { padding: 6px 14px; font-size: 0.8125rem; border: 1px solid #ccc; border-radius: 6px; background: #fff; cursor: pointer; }
+    button:hover, select:hover { background: #f0f0f0; }
+    button.primary { background: #09090b; color: #fff; border-color: #09090b; }
+    button.primary:hover { background: #27272a; }
+    textarea { width: 100%; height: 200px; font-family: monospace; font-size: 0.75rem; padding: 8px; border: 1px solid #d4d4d8; border-radius: 6px; resize: vertical; }
+    #log { max-height: 150px; overflow-y: auto; font-family: monospace; font-size: 0.75rem; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 6px; padding: 8px; margin-top: 8px; }
+    #log div { padding: 2px 0; border-bottom: 1px solid #f0f0f0; }
+    #log .event { color: #2563eb; }
+    #log .error { color: #dc2626; }
+    #log .info { color: #16a34a; }
+    iframe { width: 100%; height: 500px; border: 1px solid #d4d4d8; border-radius: 8px; background: #fff; }
+    .status { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8125rem; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .dot.green { background: #16a34a; }
+    .dot.yellow { background: #eab308; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1>🧪 Form Builder — Test Host</h1>
+    <p class="subtitle">Simulates the LIMS parent page. Embeds the builder at <code>http://localhost:3000</code>.</p>
+
+    <div class="toolbar">
+      <select id="preset">
+        <option value="">— Custom (edit below) —</option>
+        <option value="simple3">3-field form (text, number, select)</option>
+        <option value="sectioned">Section with 2 nested fields</option>
+      </select>
+      <button id="loadFormBtn" class="primary">LOAD_FORM</button>
+      <button id="exportBtn">📋 Copy received</button>
+      <span class="status"><span class="dot yellow" id="statusDot"></span><span id="statusText">Ready</span></span>
+    </div>
+
+    <textarea id="payloadInput" placeholder='{\n  "schema": { "type": "object" },\n  "uiSchema": {}\n}'></textarea>
+
+    <div id="log"><div class="info">Ready. Select a preset and click LOAD_FORM.</div></div>
+
+    <iframe id="builderFrame" src="http://localhost:3000" title="Form Builder"></iframe>
+  </div>
+
+  <script>
+    const iframe = document.getElementById('builderFrame');
+    const input = document.getElementById('payloadInput');
+    const log = document.getElementById('log');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const loadBtn = document.getElementById('loadFormBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const preset = document.getElementById('preset');
+
+    let lastReceived = null;
+
+    const presets = {
+      simple3: {
+        schema: { type: 'object', properties: { full_name: { type: 'string', minLength: 1 }, age: { type: 'integer', minimum: 0 }, department: { type: 'string', enum: ['eng','qa','lab'] } }, required: ['full_name'] },
+        uiSchema: { full_name: { 'ui:label': 'Full Name', 'ui:widget': 'text', 'ui:order': 1, 'ui:placeholder': 'Enter your name', 'x-coltorapps-key': 'full_name' }, age: { 'ui:label': 'Age', 'ui:widget': 'number', 'ui:order': 2, 'x-coltorapps-key': 'age' }, department: { 'ui:label': 'Department', 'ui:widget': 'select', 'ui:order': 3, 'ui:options': [{ value: 'eng', label: 'Engineering' }, { value: 'qa', label: 'Quality' }, { value: 'lab', label: 'Lab' }], 'x-coltorapps-key': 'department' } }
+      },
+      sectioned: {
+        schema: { type: 'object', properties: { customer: { type: 'object', properties: { company_name: { type: 'string', minLength: 1 }, contact_email: { type: 'string', format: 'email' } }, required: ['company_name'] }, notes: { type: 'string' } }, required: ['notes'] },
+        uiSchema: { customer: { 'ui:label': 'Customer Information', 'ui:widget': 'section', 'ui:order': 1, 'x-coltorapps-key': 'customer' }, 'customer.company_name': { 'ui:label': 'Company Name', 'ui:widget': 'text', 'ui:order': 1, 'x-coltorapps-key': 'customer.company_name' }, 'customer.contact_email': { 'ui:label': 'Contact Email', 'ui:widget': 'text', 'ui:order': 2, 'ui:placeholder': 'email@example.com', 'x-coltorapps-key': 'customer.contact_email' }, notes: { 'ui:label': 'Notes', 'ui:widget': 'textarea', 'ui:order': 2, 'x-coltorapps-key': 'notes' } }
+      }
+    };
+
+    function addLog(msg, type = 'info') {
+      const el = document.createElement('div');
+      el.className = type;
+      el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      log.appendChild(el);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    preset.addEventListener('change', () => {
+      const p = presets[preset.value];
+      if (p) {
+        input.value = JSON.stringify(p, null, 2);
+        addLog(`Loaded preset: ${preset.options[preset.selectedIndex].text}`, 'event');
+      }
+    });
+
+    loadBtn.addEventListener('click', () => {
+      try {
+        const payload = JSON.parse(input.value);
+        if (!payload.schema || !payload.uiSchema) {
+          addLog('Payload must include schema and uiSchema', 'error');
+          return;
+        }
+        iframe.contentWindow.postMessage({ type: 'LOAD_FORM', payload }, '*');
+        statusDot.className = 'dot green';
+        statusText.textContent = 'Form loaded';
+        addLog('LOAD_FORM sent to builder', 'event');
+      } catch (e) {
+        addLog('Invalid JSON: ' + e.message, 'error');
+      }
+    });
+
+    exportBtn.addEventListener('click', () => {
+      if (lastReceived) {
+        navigator.clipboard.writeText(JSON.stringify(lastReceived, null, 2));
+        addLog('FORM_SAVED payload copied to clipboard', 'info');
+      } else {
+        addLog('No FORM_SAVED received yet', 'error');
+      }
+    });
+
+    window.addEventListener('message', (e) => {
+      if (e.data?.type === 'FORM_SAVED') {
+        lastReceived = e.data.payload;
+        input.value = JSON.stringify(lastReceived, null, 2);
+        addLog('FORM_SAVED received', 'event');
+        statusDot.className = 'dot green';
+        statusText.textContent = 'Form saved';
+      } else if (e.data?.type === 'ERROR') {
+        addLog(`ERROR: ${e.data.code} — ${e.data.message}`, 'error');
+        statusDot.className = 'dot yellow';
+      } else if (e.data?.type === 'LOAD_FORM' || e.data?.type === 'LOAD_GROUP') {
+        // ignore — these are outgoing
+      }
+    });
+  </script>
+</body>
+</html>
