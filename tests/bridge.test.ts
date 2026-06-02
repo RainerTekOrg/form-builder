@@ -14,13 +14,7 @@ describe("createBridge", () => {
     version: 1,
   };
 
-  let handlers: { loadForm: ReturnType<typeof vi.fn>; loadGroup: ReturnType<typeof vi.fn> };
-
   beforeEach(() => {
-    handlers = {
-      loadForm: vi.fn(),
-      loadGroup: vi.fn(),
-    };
     vi.stubGlobal("window", {
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
@@ -33,7 +27,9 @@ describe("createBridge", () => {
   });
 
   it("attaches a message listener", () => {
-    const bridge = createBridge(handlers.loadForm, handlers.loadGroup);
+    const loadForm = vi.fn();
+    const loadGroup = vi.fn();
+    const bridge = createBridge(loadForm, loadGroup);
     const cleanup = bridge.attach();
     expect(window.addEventListener).toHaveBeenCalledWith("message", expect.any(Function));
     cleanup();
