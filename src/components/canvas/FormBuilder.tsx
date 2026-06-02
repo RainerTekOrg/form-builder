@@ -1,21 +1,85 @@
 "use client";
 
-import { useBuilderStore, BuilderEntities } from "@coltorapps/builder-react";
+import {
+  DndContext,
+  DragOverlay,
+  type DragEndEvent,
+  type DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+} from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { BuilderEntities } from "@coltorapps/builder-react";
+import type { BuilderStore } from "@coltorapps/builder";
 import { formBuilder } from "@/src/builder/form-builder";
-import { GripVertical, Plus } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { DndItem } from "./DndItem";
+import { entityComponents } from "@/src/components/entities/entity-components";
+import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
 
-interface FormBuilderProps {
-  onSelectEntity: (entityId: string | null) => void;
-  selectedEntityId: string | null;
+function EmptyCanvas() {
+  const { setNodeRef, isOver } = useDroppable({ id: "canvas-droppable" });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`flex h-full items-center justify-center rounded-lg border-2 border-dashed transition-colors ${
+        isOver
+          ? "border-primary bg-primary/5"
+          : "border-muted-foreground/20"
+      }`}
+    >
+      <div className="text-center max-w-xs">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+          <Plus className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <h3 className="text-sm font-medium mb-1">Empty form</h3>
+        <p className="text-xs text-muted-foreground">
+          Drag a field from the palette or click one to add it to your form.
+        </p>
+      </div>
+    </div>
+  );
 }
 
-export function FormBuilder({ onSelectEntity, selectedEntityId }: FormBuilderProps) {
-  const builderStore = useBuilderStore(formBuilder);
-  const schema = builderStore.getSchema();
+interface FormBuilderProps {
+  builderStore: BuilderStore<typeof formBuilder>;
+  selectedEntityId: string | null;
+  onSelectEntity: (id: string | null) => void;
+  onDeleteEntity: (id: string) => void;
+  onDragEnd: (event: DragEndEvent) => void;
+}
 
+export function FormBuilder({
+  builderStore,
+  selectedEntityId,
+  onSelectEntity,
+  onDeleteEntity,
+  onDragEnd,
+}: FormBuilderProps) {
+  const schema = builderStore.getSchema();
   const hasEntities = schema.root.length > 0;
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    }),
+  );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id.toString());
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveId(null);
+    onDragEnd(event);
+  };
+
+  const entityIds = hasEntities ? [...schema.root] : [];
 
   return (
     <main className="flex h-full flex-col overflow-hidden">
@@ -27,47 +91,48 @@ export function FormBuilder({ onSelectEntity, selectedEntityId }: FormBuilderPro
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
-        {!hasEntities ? (
-          <div className="flex h-full items-center justify-center">
-            <div className="text-center max-w-xs">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                <Plus className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <h3 className="text-sm font-medium mb-1">Empty form</h3>
-              <p className="text-xs text-muted-foreground">
-                Click a field type in the palette to add it to your form.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-2 max-w-2xl mx-auto">
-            {schema.root.map((entityId) => {
-              const entity = schema.entities[entityId];
-              const isSelected = entityId === selectedEntityId;
-              return (
-                <Card
-                  key={entityId}
-                  className={`p-3 cursor-pointer transition-all hover:border-primary/50 ${
-                    isSelected ? "ring-2 ring-primary border-primary" : ""
-                  }`}
-                  onClick={() => onSelectEntity(entityId)}
+        <DndContext
+          sensors={sensors}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          {hasEntities ? (
+            <div className="space-y-2 max-w-2xl mx-auto">
+              <SortableContext
+                items={entityIds}
+                strategy={verticalListSortingStrategy}
+              >
+                <BuilderEntities
+                  builderStore={builderStore}
+                  components={entityComponents}
                 >
-                  <div className="flex items-center gap-2">
-                    <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {(entity.attributes as Record<string, unknown>)?.["label"] as string ?? "Untitled"}
-                      </p>
-                      <p className="text-xs text-muted-foreground font-mono">
-                        {entity.type} — {(entity.attributes as Record<string, unknown>)?.["key"] as string ?? ""}
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+                  {({ entity, children }) => (
+                    <DndItem
+                      entityId={entity.id}
+                      isSelected={entity.id === selectedEntityId}
+                      onSelect={() => onSelectEntity(entity.id)}
+                      onDelete={() => onDeleteEntity(entity.id)}
+                    >
+                      {children}
+                    </DndItem>
+                  )}
+                </BuilderEntities>
+              </SortableContext>
+            </div>
+          ) : (
+            <div className="max-w-2xl mx-auto h-full">
+              <EmptyCanvas />
+            </div>
+          )}
+
+          <DragOverlay>
+            {activeId && activeId.startsWith("palette-") ? (
+              <div className="rounded-md border bg-background px-3 py-2 shadow-lg text-sm font-medium">
+                Add {activeId.replace("palette-", "")} field
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       </div>
     </main>
   );

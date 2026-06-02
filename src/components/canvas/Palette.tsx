@@ -1,10 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, Type, AlignLeft, Hash, List, CheckSquare, Calendar, FileUp, Pen, Layers, Repeat, FunctionSquare } from "lucide-react";
+import {
+  Search,
+  Type,
+  AlignLeft,
+  Hash,
+  List,
+  CheckSquare,
+  Calendar,
+  FileUp,
+  Pen,
+  Layers,
+  Repeat,
+  FunctionSquare,
+  Package,
+} from "lucide-react";
+import { useDraggable } from "@dnd-kit/core";
+import { cn } from "@/lib/utils";
 
 const fieldTypeGroups = [
   {
@@ -53,11 +69,50 @@ const fieldTypeGroups = [
   },
 ];
 
-interface PaletteProps {
-  onFieldAdd: (fieldType: string) => void;
+function PaletteItem({
+  type,
+  label,
+  icon: Icon,
+}: {
+  type: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `palette-${type}`,
+    data: { fieldType: type },
+  });
+
+  return (
+    <button
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      onClick={() => {
+        /* add via dnd only */
+      }}
+      className={cn(
+        "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm",
+        "hover:bg-accent hover:text-accent-foreground transition-colors",
+        "cursor-grab active:cursor-grabbing text-left",
+        isDragging && "opacity-50",
+      )}
+    >
+      <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+      <span className="flex-1 truncate">{label}</span>
+      <Badge variant="secondary" className="h-5 text-[10px] px-1.5 font-mono shrink-0">
+        {type}
+      </Badge>
+    </button>
+  );
 }
 
-export function Palette({ onFieldAdd }: PaletteProps) {
+interface PaletteProps {
+  onFieldAdd: (fieldType: string) => void;
+  stagedGroups?: Array<{ id: string; label: string }>;
+}
+
+export function Palette({ onFieldAdd, stagedGroups = [] }: PaletteProps) {
   const [search, setSearch] = useState("");
 
   const filtered = fieldTypeGroups
@@ -92,31 +147,43 @@ export function Palette({ onFieldAdd }: PaletteProps) {
             <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
               {group.label}
             </h3>
-            <div className="space-y-1">
-              {group.items.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.type}
-                    onClick={() => onFieldAdd(item.type)}
-                    className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors cursor-grab active:cursor-grabbing text-left"
-                  >
-                    <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="flex-1 truncate">{item.label}</span>
-                    <Badge
-                      variant="secondary"
-                      className="h-5 text-[10px] px-1.5 font-mono"
-                    >
-                      {item.type}
-                    </Badge>
-                  </button>
-                );
-              })}
+            <div className="space-y-0.5">
+              {group.items.map((item) => (
+                <PaletteItem
+                  key={item.type}
+                  type={item.type}
+                  label={item.label}
+                  icon={item.icon}
+                />
+              ))}
             </div>
           </div>
         ))}
 
-        {filtered.length === 0 && (
+        {stagedGroups.length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
+              Groups
+            </h3>
+            <div className="space-y-0.5">
+              {stagedGroups.map((group) => (
+                <button
+                  key={group.id}
+                  onClick={() => onFieldAdd(`group:${group.id}`)}
+                  className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-left"
+                >
+                  <Package className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="flex-1 truncate">{group.label}</span>
+                  <Badge variant="outline" className="h-5 text-[10px] px-1.5 font-mono shrink-0">
+                    group
+                  </Badge>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {filtered.length === 0 && stagedGroups.length === 0 && (
           <p className="text-xs text-muted-foreground text-center py-8">
             No fields match your search.
           </p>
