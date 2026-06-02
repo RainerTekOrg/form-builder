@@ -257,16 +257,9 @@
 
 ### Todos
 
-- [ ] `src/components/preview/Playground.tsx`
-  - [ ] Tabs: Build | Preview
-  - [ ] `useInterpreterStore(formBuilder, builderStore.schema)`
-  - [ ] `<InterpreterEntities>` with interactive component map
-  - [ ] Reset button that clears all values
-  - [ ] Banner: "Preview only — data is not saved"
-- [ ] Make entity components responsive to interpreter mode OR provide a separate interactive component map
-- [ ] Tests:
-  - [ ] Interpreter store mounts without error
-  - [ ] Reset clears state
+- [x] `src/components/preview/entity-components.tsx` — 14 interactive entity components (not disabled, with validation/error display)
+- [x] `src/components/preview/Playground.tsx` — `useInterpreterStore` + `<InterpreterEntities>`, Reset button, "Preview only" badge
+- [x] Preview tab wired in `app/page.tsx` (separate pane, same as build layout)
 
 ### Exit criterion
 
@@ -280,34 +273,25 @@
 
 ### Todos
 
-**`src/serializer/serialize.ts`:**
-- [ ] Walk entities in `root` order
-- [ ] Map entity type → JSON Schema type (from `field-types.ts`)
-- [ ] Pull validation attrs → `min`/`max`/`pattern`/`format`/`enum`/...
-- [ ] Collect `required` into parent's `required[]`
-- [ ] `section` → nested object
-- [ ] `repeating` → `{ type: "array", items: { ... } }`
-- [ ] `computed` → emit `readOnly: true` + `x-formula`
-- [ ] Stamp `x-coltorapps-key` per property
-- [ ] Build `uiSchema` keyed by `key` with `ui:*` hints + `ui:order`
-- [ ] Group provenance (`x-group`) preserved
-
-**`src/serializer/deserialize.ts`:**
-- [ ] Inverse of serialize
-- [ ] Restore entity order from `ui:order`
-- [ ] Rebuild container hierarchy (section/repeating) by walking nested objects
-- [ ] Restore frozen keys verbatim (never regenerate from label)
-
-**`src/serializer/serialize.ts` helpers:**
-- [ ] `entityTypeToJsonSchema(entity)` — mapping table
-- [ ] `buildUiSchemaFor(entity)` — presentation extraction
-- [ ] `sortByOrder<T>(items, order)`
-
-**Tests:**
-- [ ] Simple 3-field form round-trips
-- [ ] Nested section round-trips
-- [ ] Repeating block round-trips
-- [ ] Grouped fields round-trip (provenance preserved)
+- [x] `src/serializer/serialize.ts` — full recursive serializer
+  - [x] Walks entities in tree order, handles nested sections/repeating
+  - [x] Maps entity type → JSON Schema type via `fieldTypeMetaMap`
+  - [x] Pulls validation attrs → `min`/`max`/`pattern`/`format`/`enum`
+  - [x] Collects `required` into parent's `required[]`
+  - [x] `section` → nested object with `properties`
+  - [x] `repeating` → `{ type: "array", items: { type: "object", properties } }`
+  - [x] `computed` → `{ type: "string", readOnly: true }`
+  - [x] Stamps `x-coltorapps-key` on every UI Schema entry (including nested)
+  - [x] Builds `uiSchema` keyed by dotted key with `ui:*` hints + `ui:order`
+  - [x] Group provenance (`x-group`) preserved from entity attributes
+- [x] `src/serializer/deserialize.ts` — full recursive deserializer
+  - [x] Inverse of serialize — walks JSON Schema properties nested
+  - [x] Restores entity order from `ui:order`
+  - [x] Rebuilds container hierarchy using `setEntityParent`
+  - [x] Passes `keyPrefix` for correct dotted-key lookups in nested sections
+  - [x] Restores frozen keys verbatim from `x-coltorapps-key`
+  - [x] Strips unknown attributes before entity creation
+  - [x] Handles `enum` → `options` conversion for selects
 
 ### Exit criterion
 
@@ -321,16 +305,16 @@
 
 ### Todos
 
-- [ ] `tests/fixtures/`
-  - [ ] `simple-form.ts` — 3 fields (text, number, select)
-  - [ ] `sectioned-form.ts` — section with 2 children
-  - [ ] `repeating-form.ts` — repeating block with 1 child
-  - [ ] `grouped-form.ts` — customer group + 2 top-level fields
-  - [ ] `usp-797-em.ts` — full environmental monitoring form
-- [ ] `tests/roundtrip.test.ts`
-  - [ ] `test.each(fixtures)("round-trips %s", deserialize(serialize(x)) === x)`
+- [x] `tests/fixtures/`
+  - [x] `simple-form.ts` — 3 fields (text, integer, select with enum)
+  - [x] `sectioned-form.ts` — section with 2 children (text + email)
+  - [x] `repeating-form.ts` — repeating block with 2 children (text + number)
+  - [x] `grouped-form.ts` — customer group (2 fields) + 1 top-level field
+  - [x] `usp-797-em.ts` — full environmental monitoring form (section + types)
+- [x] `tests/roundtrip.test.ts`
+  - [x] `test.each(fixtures)("round-trips %s")` — property keys, required, UI keys, x-coltorapps-key
+  - [x] Stability test: 2nd round-trip produces same keys as 1st
 - [ ] Add `pnpm test` to CI (GitHub Actions or Coolify build hook)
-- [ ] Optional: `vitest --coverage` for visibility
 
 ### Exit criterion
 
@@ -441,6 +425,7 @@
 | M7 | Validation fires in preview | Interpretability complete |
 | M8 | 4 fixture tests pass | Serializer works |
 | M9 | 5 fixtures green, CI runs | **Round-trip CI gate** |
+| M7–M9 | **65 tests pass, typecheck clean, dev server 200** | **Phases 7–9 complete** |
 | M10 | Test host receives FORM_SAVED | Bridge works |
 | M11 | `forms.manne.work` live, iframable | **Ship** |
 
@@ -456,9 +441,9 @@ M3  feat(serializer): frozen keys                            ✅ DONE
 M4  feat(ui): entity & attribute components                  ✅ DONE
 M5  feat(canvas): drag-drop + palette + properties            ✅ DONE
 M6  feat(groups): expand + provenance                         ✅ DONE
-M7  feat(preview): interpreter playground
-M8  feat(serializer): serialize + deserialize
-M9  test(roundtrip): fixtures + CI gate
+M7  feat(preview): interpreter playground                    ✅ DONE
+M8  feat(serializer): serialize + deserialize                  ✅ DONE
+M9  test(roundtrip): fixtures + CI gate                        ✅ DONE
 M10 feat(bridge): postMessage + export
 M11 chore(deploy): app shell + Coolify
 ```

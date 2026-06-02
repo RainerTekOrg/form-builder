@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { Header } from "@/src/components/layout/Header";
 import { Palette } from "@/src/components/canvas/Palette";
 import { FormBuilder } from "@/src/components/canvas/FormBuilder";
 import { PropertiesPanel } from "@/src/components/canvas/PropertiesPanel";
+import { Playground } from "@/src/components/preview/Playground";
 import { useBuilderSetup } from "@/src/components/canvas/useBuilderSetup";
 import { generateKey, flattenKeys } from "@/src/serializer/key";
 import { expandGroup } from "@/src/serializer/groups";
+import { serialize } from "@/src/serializer/serialize";
+import { downloadJson } from "@/src/bridge/export";
 import type { GroupPayload } from "@/src/contract/types";
 
 export default function Home() {
@@ -39,8 +42,7 @@ export default function Home() {
       }
 
       if (activeId !== overId) {
-        const schema = builderStore.getSchema();
-        const root = [...schema.root];
+        const root = [...builderStore.getSchema().root];
         const oldIndex = root.indexOf(activeId);
         const newIndex = root.indexOf(overId);
         if (oldIndex !== -1 && newIndex !== -1) {
@@ -81,19 +83,17 @@ export default function Home() {
 
   const handleExport = useCallback(() => {
     const schema = builderStore.getSchema();
-    const json = JSON.stringify(schema, null, 2);
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "form-schema.json";
-    a.click();
-    URL.revokeObjectURL(url);
+    const payload = serialize(schema);
+    downloadJson(payload);
   }, [builderStore]);
 
   const handleSave = useCallback(() => {
-    console.log("Save triggered — will emit postMessage in a future phase.");
-  }, []);
+    const schema = builderStore.getSchema();
+    const payload = serialize(schema);
+    const json = JSON.stringify(payload, null, 2);
+    console.log("[save] Serialized form:", json);
+    // Bridge attach will be wired in Phase 10
+  }, [builderStore]);
 
   return (
     <div className="flex h-dvh flex-col bg-background">
@@ -127,10 +127,8 @@ export default function Home() {
           </div>
         </div>
       ) : (
-        <div className="flex flex-1 items-center justify-center p-8">
-          <p className="text-sm text-muted-foreground">
-            Preview mode — will render fillable form in a future phase.
-          </p>
+        <div className="flex flex-1 overflow-hidden">
+          <Playground builderStore={builderStore} />
         </div>
       )}
     </div>
