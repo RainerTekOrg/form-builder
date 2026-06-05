@@ -35,8 +35,9 @@ import {
   Layers,
   Repeat,
   FunctionSquare,
+  X,
 } from "lucide-react";
-import type { ChangeEvent } from "react";
+import { useRef, useState, useEffect, type ChangeEvent } from "react";
 
 function FieldError({ error }: { error: unknown }) {
   if (!error) return null;
@@ -309,49 +310,166 @@ const DatetimeFieldInteractive = createEntityComponent(datetimeFieldEntity, (pro
   </Card>
 ));
 
-const FileFieldInteractive = createEntityComponent(fileFieldEntity, (props) => (
-  <Card>
-    <div className="space-y-1.5">
-      <Label className="text-sm font-medium">
-        {props.entity.attributes.label}
-        {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-      </Label>
-      <div className={cn(
-        "flex items-center gap-2 rounded-md border border-dashed px-3 py-4 text-sm text-muted-foreground",
-        props.entity.error ? "border-destructive" : "border-input",
-      )}>
-        <Upload className="h-4 w-4" />
-        <span>{typeof props.entity.value === "string" ? props.entity.value : "Click or drag to upload"}</span>
-      </div>
-      <FieldError error={props.entity.error} />
-      {props.entity.attributes.helpText && (
-        <p className="text-xs text-muted-foreground">{props.entity.attributes.helpText}</p>
-      )}
-    </div>
-  </Card>
-));
+const FileFieldInteractive = createEntityComponent(fileFieldEntity, (props) => {
+  const [fileName, setFileName] = useState<string | null>(
+    typeof props.entity.value === "string" ? props.entity.value : null,
+  );
+  const fileRef = useRef<HTMLInputElement>(null);
 
-const SignatureFieldInteractive = createEntityComponent(signatureFieldEntity, (props) => (
-  <Card>
-    <div className="space-y-1.5">
-      <Label className="text-sm font-medium">
-        {props.entity.attributes.label}
-        {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-      </Label>
-      <div className={cn(
-        "flex h-20 items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground",
-        props.entity.error ? "border-destructive" : "border-input",
-      )}>
-        <PenLine className="h-4 w-4 mr-2" />
-        <span>Sign here</span>
+  return (
+    <Card>
+      <div className="space-y-1.5">
+        <Label className="text-sm font-medium">
+          {props.entity.attributes.label}
+          {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
+        </Label>
+        <div
+          className={cn(
+            "flex items-center gap-2 rounded-md border border-dashed px-3 py-4 text-sm text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors",
+            props.entity.error ? "border-destructive" : "border-input",
+          )}
+          onClick={() => fileRef.current?.click()}
+        >
+          <Upload className="h-4 w-4 shrink-0" />
+          <span className="flex-1 truncate">{fileName ?? "Click to upload"}</span>
+          {fileName && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setFileName(null); props.setValue(undefined); if (fileRef.current) fileRef.current.value = ""; }}
+              className="shrink-0 hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              setFileName(file.name);
+              props.setValue(file.name);
+            }
+          }}
+        />
+        <FieldError error={props.entity.error} />
+        {props.entity.attributes.helpText && (
+          <p className="text-xs text-muted-foreground">{props.entity.attributes.helpText}</p>
+        )}
       </div>
-      <FieldError error={props.entity.error} />
-      {props.entity.attributes.helpText && (
-        <p className="text-xs text-muted-foreground">{props.entity.attributes.helpText}</p>
-      )}
-    </div>
-  </Card>
-));
+    </Card>
+  );
+});
+
+const SignatureFieldInteractive = createEntityComponent(signatureFieldEntity, (props) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isDrawing = useRef(false);
+  const hasDrawn = useRef(false);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width > 0) canvas.width = rect.width;
+    if (rect.height > 0) canvas.height = rect.height;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0) canvas.width = width;
+        if (height > 0) canvas.height = height;
+      }
+    });
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, []);
+
+  const getPos = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  };
+
+  const startDraw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    isDrawing.current = true;
+    hasDrawn.current = true;
+    const ctx = canvasRef.current?.getContext("2d");
+    if (!ctx) return;
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    const pos = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+    canvasRef.current?.setPointerCapture(e.pointerId);
+  };
+
+  const draw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawing.current) return;
+    const ctx = canvasRef.current?.getContext("2d");
+    if (!ctx) return;
+    const pos = getPos(e);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+  };
+
+  const stopDraw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawing.current) return;
+    isDrawing.current = false;
+    canvasRef.current?.releasePointerCapture(e.pointerId);
+    if (canvasRef.current && hasDrawn.current) {
+      props.setValue(canvasRef.current.toDataURL());
+    }
+    props.validateValue();
+  };
+
+  const clearCanvas = () => {
+    const ctx = canvasRef.current?.getContext("2d");
+    if (!ctx || !canvasRef.current) return;
+    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    hasDrawn.current = false;
+    props.setValue(undefined);
+  };
+
+  return (
+    <Card>
+      <div className="space-y-1.5">
+        <Label className="text-sm font-medium">
+          {props.entity.attributes.label}
+          {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
+        </Label>
+        <canvas
+          ref={canvasRef}
+          className={cn(
+            "w-full h-24 rounded-md border border-dashed touch-none cursor-crosshair bg-card",
+            props.entity.error ? "border-destructive" : "border-input",
+          )}
+          onPointerDown={startDraw}
+          onPointerMove={draw}
+          onPointerUp={stopDraw}
+          onPointerLeave={stopDraw}
+          style={{ touchAction: "none" }}
+        />
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={clearCanvas}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors underline"
+          >
+            Clear signature
+          </button>
+        </div>
+        <FieldError error={props.entity.error} />
+        {props.entity.attributes.helpText && (
+          <p className="text-xs text-muted-foreground">{props.entity.attributes.helpText}</p>
+        )}
+      </div>
+    </Card>
+  );
+});
 
 const SectionInteractive = createEntityComponent(sectionEntity, (props) => (
   <div className="space-y-3 rounded-lg border-l-2 border-primary/30 bg-muted/20 p-3">

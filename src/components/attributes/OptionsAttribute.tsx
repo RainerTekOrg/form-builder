@@ -5,7 +5,7 @@ import { optionsAttribute, optionItemSchema } from "@/src/builder/attributes/opt
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 
 export const OptionsAttribute = createAttributeComponent(optionsAttribute, (props) => {
   const options = props.attribute.value ?? [];
@@ -26,6 +26,14 @@ export const OptionsAttribute = createAttributeComponent(optionsAttribute, (prop
     props.setValue(next);
   };
 
+  const moveOption = (index: number, direction: -1 | 1) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= options.length) return;
+    const next = [...options];
+    [next[index], next[newIndex]] = [next[newIndex], next[index]];
+    props.setValue(next);
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -38,7 +46,24 @@ export const OptionsAttribute = createAttributeComponent(optionsAttribute, (prop
       <div className="space-y-1.5">
         {options.map((opt, i) => (
           <div key={i} className="flex items-center gap-1">
-            <GripVertical className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <div className="flex flex-col shrink-0">
+              <button
+                type="button"
+                onClick={() => moveOption(i, -1)}
+                disabled={i === 0}
+                className="h-3.5 w-3.5 flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-20 disabled:cursor-not-allowed"
+              >
+                <ChevronUp className="h-3 w-3" />
+              </button>
+              <button
+                type="button"
+                onClick={() => moveOption(i, 1)}
+                disabled={i === options.length - 1}
+                className="h-3.5 w-3.5 flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-20 disabled:cursor-not-allowed"
+              >
+                <ChevronDown className="h-3 w-3" />
+              </button>
+            </div>
             <Input
               value={opt.value}
               onChange={(e) => updateOption(i, "value", e.target.value)}

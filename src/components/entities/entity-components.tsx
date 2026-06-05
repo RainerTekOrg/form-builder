@@ -16,6 +16,7 @@ import { signatureFieldEntity } from "@/src/builder/entities/signature-field";
 import { sectionEntity } from "@/src/builder/entities/section-entity";
 import { repeatingEntity } from "@/src/builder/entities/repeating-entity";
 import { computedFieldEntity } from "@/src/builder/entities/computed-field-entity";
+import { useRef, useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -30,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Upload, PenLine, Layers, Repeat, Plus, FunctionSquare } from "lucide-react";
+import { Upload, PenLine, Layers, Repeat, Plus, FunctionSquare, X } from "lucide-react";
 
 const TextFieldEntity = createEntityComponent(textFieldEntity, (props) => (
   <div className="space-y-1.5">
@@ -203,37 +204,139 @@ const DatetimeFieldEntity = createEntityComponent(datetimeFieldEntity, (props) =
   </div>
 ));
 
-const FileFieldEntity = createEntityComponent(fileFieldEntity, (props) => (
-  <div className="space-y-1.5">
-    <Label className="text-sm font-medium">
-      {props.entity.attributes.label}
-      {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-    </Label>
-    <div className="flex items-center gap-2 rounded-md border border-dashed border-input bg-muted/30 px-3 py-4 text-sm text-muted-foreground">
-      <Upload className="h-4 w-4" />
-      <span>Click or drag to upload</span>
-    </div>
-    {props.entity.attributes.helpText && (
-      <p className="text-xs text-muted-foreground">{props.entity.attributes.helpText}</p>
-    )}
-  </div>
-));
+const FileFieldEntity = createEntityComponent(fileFieldEntity, (props) => {
+  const [fileName, setFileName] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-const SignatureFieldEntity = createEntityComponent(signatureFieldEntity, (props) => (
-  <div className="space-y-1.5">
-    <Label className="text-sm font-medium">
-      {props.entity.attributes.label}
-      {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-    </Label>
-    <div className="flex h-20 items-center justify-center rounded-md border border-dashed border-input bg-muted/30 text-sm text-muted-foreground">
-      <PenLine className="h-4 w-4 mr-2" />
-      <span>Signature area</span>
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-sm font-medium">
+        {props.entity.attributes.label}
+        {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
+      </Label>
+      <div
+        className="flex items-center gap-2 rounded-md border border-dashed border-input bg-muted/30 px-3 py-4 text-sm text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors"
+        onClick={() => fileRef.current?.click()}
+      >
+        <Upload className="h-4 w-4 shrink-0" />
+        <span className="flex-1 truncate">{fileName ?? "Click to upload"}</span>
+        {fileName && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setFileName(null); if (fileRef.current) fileRef.current.value = ""; }}
+            className="shrink-0 hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+      <input
+        ref={fileRef}
+        type="file"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) setFileName(file.name);
+        }}
+      />
+      {props.entity.attributes.helpText && (
+        <p className="text-xs text-muted-foreground">{props.entity.attributes.helpText}</p>
+      )}
     </div>
-    {props.entity.attributes.helpText && (
-      <p className="text-xs text-muted-foreground">{props.entity.attributes.helpText}</p>
-    )}
-  </div>
-));
+  );
+});
+
+const SignatureFieldEntity = createEntityComponent(signatureFieldEntity, (props) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isDrawing = useRef(false);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width > 0) canvas.width = rect.width;
+    if (rect.height > 0) canvas.height = rect.height;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0) canvas.width = width;
+        if (height > 0) canvas.height = height;
+      }
+    });
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, []);
+
+  const getPos = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  };
+
+  const startDraw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    isDrawing.current = true;
+    const ctx = canvasRef.current?.getContext("2d");
+    if (!ctx) return;
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    const pos = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+    canvasRef.current?.setPointerCapture(e.pointerId);
+  };
+
+  const draw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawing.current) return;
+    const ctx = canvasRef.current?.getContext("2d");
+    if (!ctx) return;
+    const pos = getPos(e);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+  };
+
+  const stopDraw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawing.current) return;
+    isDrawing.current = false;
+    canvasRef.current?.releasePointerCapture(e.pointerId);
+  };
+
+  const clearCanvas = () => {
+    const ctx = canvasRef.current?.getContext("2d");
+    if (!ctx || !canvasRef.current) return;
+    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-sm font-medium">
+        {props.entity.attributes.label}
+        {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
+      </Label>
+      <canvas
+        ref={canvasRef}
+        className="w-full h-24 rounded-md border border-dashed border-input bg-muted/30 touch-none cursor-crosshair"
+        onPointerDown={startDraw}
+        onPointerMove={draw}
+        onPointerUp={stopDraw}
+        onPointerLeave={stopDraw}
+        style={{ touchAction: "none" }}
+      />
+      <button
+        type="button"
+        onClick={clearCanvas}
+        className="text-xs text-muted-foreground hover:text-foreground transition-colors underline"
+      >
+        Clear signature
+      </button>
+      {props.entity.attributes.helpText && (
+        <p className="text-xs text-muted-foreground">{props.entity.attributes.helpText}</p>
+      )}
+    </div>
+  );
+});
 
 const SectionEntityComponent = createEntityComponent(sectionEntity, (props) => {
   const { setNodeRef, isOver } = useDroppable({ id: `container-${props.entity.id}` });
@@ -265,11 +368,16 @@ const SectionEntityComponent = createEntityComponent(sectionEntity, (props) => {
 const RepeatingEntityComponent = createEntityComponent(repeatingEntity, (props) => {
   const { setNodeRef, isOver } = useDroppable({ id: `container-${props.entity.id}` });
   const hasChildren = props.children && props.children.length > 0;
+  const [rowCount, setRowCount] = useState(1);
+
   return (
     <div className="space-y-3 rounded-lg border-l-2 border-amber-400/40 bg-muted/20 p-3">
       <div className="flex items-center gap-2 text-sm font-medium text-amber-600/70">
         <Repeat className="h-4 w-4" />
         <Label className="text-sm font-medium cursor-pointer">{props.entity.attributes.label}</Label>
+        <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-mono ml-auto">
+          {rowCount} row{rowCount !== 1 ? "s" : ""}
+        </Badge>
       </div>
       <div
         ref={setNodeRef}
@@ -285,9 +393,24 @@ const RepeatingEntityComponent = createEntityComponent(repeatingEntity, (props) 
           </p>
         )}
       </div>
-      <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors pl-4" disabled>
-        <Plus className="h-3 w-3" /> Add item
-      </button>
+      <div className="flex items-center gap-2 pl-4">
+        <button
+          type="button"
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          onClick={() => setRowCount((c) => c + 1)}
+        >
+          <Plus className="h-3 w-3" /> Add item
+        </button>
+        {rowCount > 1 && (
+          <button
+            type="button"
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors"
+            onClick={() => setRowCount((c) => Math.max(1, c - 1))}
+          >
+            <X className="h-3 w-3" /> Remove last
+          </button>
+        )}
+      </div>
     </div>
   );
 });
