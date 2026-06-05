@@ -22,7 +22,8 @@ const fieldTypeToEntity: Record<string, string> = {
 
 const allowedAttrs = new Set([
   "key", "label", "required", "placeholder", "helpText",
-  "options", "validation", "unit", "condition", "formula", "fieldWidth",
+  "options", "validation", "unit", "condition", "formula",
+  "fieldWidth", "defaultValue",
 ]);
 
 function guessEntityType(widget: string | undefined, jsonType?: string): string {
@@ -65,6 +66,8 @@ function buildAttributes(
   if (json.enum) {
     attrs.options = json.enum.map((v: string) => ({ value: v, label: v }));
   }
+
+  if (json.default !== undefined) attrs.defaultValue = json.default;
 
   const validation = extractValidation(json);
   if (validation) attrs.validation = validation;

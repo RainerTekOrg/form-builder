@@ -35,6 +35,22 @@ export function applyDefaults(
       applied++;
     }
   }
+
+  // Apply builder-defined default values for fields not overridden by host defaults
+  const seenKeys = new Set(Object.keys(payload.defaults ?? {}));
+  const schemaEntities = (schema as unknown as {
+    entities: Record<string, { attributes: Record<string, unknown> }>;
+  }).entities;
+  for (const [entityId, entity] of Object.entries(schemaEntities)) {
+    const propertyName = entity.attributes.key as string | undefined;
+    if (!propertyName || seenKeys.has(propertyName)) continue;
+    const defaultValue = entity.attributes.defaultValue;
+    if (defaultValue !== undefined) {
+      interpreter.setEntityValue(entityId, defaultValue);
+      applied++;
+    }
+  }
+
   return applied;
 }
 

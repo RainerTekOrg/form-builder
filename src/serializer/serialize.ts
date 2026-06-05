@@ -151,6 +151,10 @@ export function serialize(schema: ColtorappsSchema): FormPayload {
       jsonProp.enum = options.map((o) => o.value);
     }
 
+    if (attrs.defaultValue !== undefined) {
+      jsonProp.default = attrs.defaultValue;
+    }
+
     return jsonProp;
   }
 
