@@ -109,10 +109,13 @@ export function createBridge(
     return true;
   }
 
+  let emitReadyWarned = false;
+
   function emitReady(): boolean {
     const message: OutboundMessage = { type: "BUILDER_READY" };
     const targetOrigin = parentOrigin ?? (ALLOWED_ORIGINS.length > 0 ? ALLOWED_ORIGINS[0] : "*");
-    if (targetOrigin === "*") {
+    if (targetOrigin === "*" && !emitReadyWarned) {
+      emitReadyWarned = true;
       console.warn("[bridge] emitReady falling back to '*' — no parent origin captured and no ALLOWED_ORIGINS configured");
     }
     window.parent.postMessage(message, targetOrigin);
