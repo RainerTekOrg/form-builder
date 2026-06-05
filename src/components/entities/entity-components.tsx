@@ -1,6 +1,7 @@
 "use client";
 
 import { createEntityComponent } from "@coltorapps/builder-react";
+import { useDroppable } from "@dnd-kit/core";
 import { textFieldEntity } from "@/src/builder/entities/text-field";
 import { textareaFieldEntity } from "@/src/builder/entities/textarea-field";
 import { numberFieldEntity } from "@/src/builder/entities/number-field";
@@ -234,36 +235,62 @@ const SignatureFieldEntity = createEntityComponent(signatureFieldEntity, (props)
   </div>
 ));
 
-const SectionEntityComponent = createEntityComponent(sectionEntity, (props) => (
-  <div className="space-y-3 rounded-lg border-l-2 border-primary/30 bg-muted/20 p-3">
-    <div className="flex items-center gap-2 text-sm font-medium text-primary/70">
-      <Layers className="h-4 w-4" />
-      <Label className="text-sm font-medium cursor-pointer">{props.entity.attributes.label}</Label>
+const SectionEntityComponent = createEntityComponent(sectionEntity, (props) => {
+  const { setNodeRef, isOver } = useDroppable({ id: `container-${props.entity.id}` });
+  const hasChildren = props.children && props.children.length > 0;
+  return (
+    <div className="space-y-3 rounded-lg border-l-2 border-primary/30 bg-muted/20 p-3">
+      <div className="flex items-center gap-2 text-sm font-medium text-primary/70">
+        <Layers className="h-4 w-4" />
+        <Label className="text-sm font-medium cursor-pointer">{props.entity.attributes.label}</Label>
+      </div>
+      <div
+        ref={setNodeRef}
+        className={`min-h-[2.5rem] rounded-md transition-colors pl-4 border-l border-border/50 ${
+          isOver ? "bg-primary/10 ring-1 ring-primary/30" : ""
+        }`}
+      >
+        {hasChildren ? (
+          <div className="space-y-2">{props.children}</div>
+        ) : (
+          <p className="text-xs text-muted-foreground py-2">
+            {isOver ? "Drop here" : "Drag fields into this section"}
+          </p>
+        )}
+      </div>
     </div>
-    {props.children && props.children.length > 0 ? (
-      <div className="space-y-2 pl-4 border-l border-border/50">{props.children}</div>
-    ) : (
-      <p className="text-xs text-muted-foreground pl-4">Drag fields into this section</p>
-    )}
-  </div>
-));
+  );
+});
 
-const RepeatingEntityComponent = createEntityComponent(repeatingEntity, (props) => (
-  <div className="space-y-3 rounded-lg border-l-2 border-amber-400/40 bg-muted/20 p-3">
-    <div className="flex items-center gap-2 text-sm font-medium text-amber-600/70">
-      <Repeat className="h-4 w-4" />
-      <Label className="text-sm font-medium cursor-pointer">{props.entity.attributes.label}</Label>
+const RepeatingEntityComponent = createEntityComponent(repeatingEntity, (props) => {
+  const { setNodeRef, isOver } = useDroppable({ id: `container-${props.entity.id}` });
+  const hasChildren = props.children && props.children.length > 0;
+  return (
+    <div className="space-y-3 rounded-lg border-l-2 border-amber-400/40 bg-muted/20 p-3">
+      <div className="flex items-center gap-2 text-sm font-medium text-amber-600/70">
+        <Repeat className="h-4 w-4" />
+        <Label className="text-sm font-medium cursor-pointer">{props.entity.attributes.label}</Label>
+      </div>
+      <div
+        ref={setNodeRef}
+        className={`min-h-[2.5rem] rounded-md transition-colors pl-4 ${
+          isOver ? "bg-amber-400/10 ring-1 ring-amber-400/40" : ""
+        }`}
+      >
+        {hasChildren ? (
+          <div className="space-y-2">{props.children}</div>
+        ) : (
+          <p className="text-xs text-muted-foreground py-2">
+            {isOver ? "Drop here" : "Drag fields into this repeating group"}
+          </p>
+        )}
+      </div>
+      <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors pl-4" disabled>
+        <Plus className="h-3 w-3" /> Add item
+      </button>
     </div>
-    {props.children && props.children.length > 0 ? (
-      <div className="space-y-2 pl-4">{props.children}</div>
-    ) : (
-      <p className="text-xs text-muted-foreground pl-4">Drag fields into this repeating group</p>
-    )}
-    <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors pl-4" disabled>
-      <Plus className="h-3 w-3" /> Add item
-    </button>
-  </div>
-));
+  );
+});
 
 const ComputedFieldEntity = createEntityComponent(computedFieldEntity, (props) => (
   <div className="space-y-1.5">

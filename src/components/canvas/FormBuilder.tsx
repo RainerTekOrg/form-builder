@@ -16,9 +16,43 @@ import type { BuilderStore } from "@coltorapps/builder";
 import { formBuilder } from "@/src/builder/form-builder";
 import { DndItem } from "./DndItem";
 import { entityComponents } from "@/src/components/entities/entity-components";
-import { Plus } from "lucide-react";
+import { Plus, Type, AlignLeft, Hash, List, CheckSquare, Calendar, FileUp, Pen, Layers, Repeat, FunctionSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
+
+const fieldTypeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  text: Type,
+  textarea: AlignLeft,
+  number: Hash,
+  integer: Hash,
+  select: List,
+  multiselect: List,
+  boolean: CheckSquare,
+  date: Calendar,
+  datetime: Calendar,
+  file: FileUp,
+  signature: Pen,
+  section: Layers,
+  repeating: Repeat,
+  computed: FunctionSquare,
+};
+
+const fieldTypeLabels: Record<string, string> = {
+  text: "Text Field",
+  textarea: "Text Area",
+  number: "Number",
+  integer: "Integer",
+  select: "Select",
+  multiselect: "Multi Select",
+  boolean: "Checkbox",
+  date: "Date",
+  datetime: "Date Time",
+  file: "File Upload",
+  signature: "Signature",
+  section: "Section",
+  repeating: "Repeating",
+  computed: "Computed",
+};
 
 function EmptyCanvas() {
   const { setNodeRef, isOver } = useDroppable({ id: "canvas-droppable" });
@@ -97,7 +131,13 @@ export function FormBuilder({
           onDragEnd={handleDragEnd}
         >
           {hasEntities ? (
-            <div className="space-y-2 max-w-2xl mx-auto">
+            <div
+              role="region"
+              aria-label="Form canvas"
+              aria-live="polite"
+              aria-atomic="false"
+              className="space-y-2 max-w-2xl mx-auto"
+            >
               <SortableContext
                 items={entityIds}
                 strategy={verticalListSortingStrategy}
@@ -127,9 +167,20 @@ export function FormBuilder({
 
           <DragOverlay>
             {activeId && activeId.startsWith("palette-") ? (
-              <div className="rounded-md border bg-background px-3 py-2 shadow-lg text-sm font-medium">
-                Add {activeId.replace("palette-", "")} field
-              </div>
+              (() => {
+                const fieldType = activeId.replace("palette-", "");
+                const Icon = fieldTypeIcons[fieldType] ?? Type;
+                const label = fieldTypeLabels[fieldType] ?? fieldType;
+                return (
+                  <div className="flex items-center gap-2 rounded-md border bg-background px-3 py-2 shadow-lg text-sm font-medium">
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    <span>Add {label}</span>
+                    <Badge variant="secondary" className="h-5 text-[10px] px-1.5 font-mono">
+                      {fieldType}
+                    </Badge>
+                  </div>
+                );
+              })()
             ) : null}
           </DragOverlay>
         </DndContext>
