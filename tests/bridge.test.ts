@@ -47,17 +47,17 @@ describe("createBridge", () => {
     return addEventListenerSpy.mock.calls[0]?.[1];
   }
 
-  it("calls onLoadForm when LOAD_FORM is received", () => {
+  it("calls onLoadForm when LOAD_FORM is received and captures parent origin", () => {
     const loadForm = vi.fn();
     const loadGroup = vi.fn();
     const bridge = createBridge(loadForm, loadGroup);
     bridge.attach();
 
     const handler = getHandler();
-    expect(handler).toBeDefined();
     handler({ data: { type: "LOAD_FORM", payload: sampleForm }, origin: "http://localhost:5173" });
 
     expect(loadForm).toHaveBeenCalledWith(sampleForm);
+    expect(bridge.getParentOrigin()).toBe("http://localhost:5173");
   });
 
   it("calls onLoadGroup when LOAD_GROUP is received", () => {
@@ -70,6 +70,7 @@ describe("createBridge", () => {
     handler({ data: { type: "LOAD_GROUP", payload: sampleGroup }, origin: "http://localhost:5173" });
 
     expect(loadGroup).toHaveBeenCalledWith(sampleGroup);
+    expect(bridge.getParentOrigin()).toBe("http://localhost:5173");
   });
 
   it("ignores messages with unknown type", () => {
@@ -97,23 +98,104 @@ describe("createBridge", () => {
     expect(loadForm).not.toHaveBeenCalled();
   });
 
-  it("emitSaved posts FORMAT_SAVED message to parent", () => {
-    const bridge = createBridge(vi.fn(), vi.fn());
-    bridge.emitSaved("http://localhost:5173", sampleForm);
+  it("calls onLoadFill when LOAD_FILL is received", () => {
+    const loadForm = vi.fn();
+    const loadGroup = vi.fn();
+    const loadFill = vi.fn();
+    const bridge = createBridge(loadForm, loadGroup, loadFill);
+    bridge.attach();
 
+    const handler = getHandler();
+    const fillPayload = { ...sampleForm };
+    handler({ data: { type: "LOAD_FILL", payload: fillPayload }, origin: "http://localhost:5173" });
+
+    expect(loadFill).toHaveBeenCalledWith(fillPayload);
+  });
+
+  it("ignores LOAD_FILL if onLoadFill is not provided", () => {
+    const bridge = createBridge(vi.fn(), vi.fn());
+    bridge.attach();
+    const handler = getHandler();
+    expect(() => {
+      handler({ data: { type: "LOAD_FILL", payload: sampleForm }, origin: "http://localhost:5173" });
+    }).not.toThrow();
+  });
+
+  it("emitSaved posts FORM_SAVED to captured parent origin", () => {
+    const bridge = createBridge(vi.fn(), vi.fn());
+    bridge.attach();
+    const handler = getHandler();
+    handler({ data: { type: "LOAD_FORM", payload: sampleForm }, origin: "http://localhost:5173" });
+
+    const result = bridge.emitSaved(sampleForm);
+
+    expect(result).toBe(true);
     expect(postMessageSpy).toHaveBeenCalledWith(
       { type: "FORM_SAVED", payload: sampleForm },
       "http://localhost:5173",
     );
   });
 
-  it("emitError posts ERROR message to parent", () => {
+  it("emitError posts ERROR to captured parent origin", () => {
     const bridge = createBridge(vi.fn(), vi.fn());
-    bridge.emitError("http://localhost:5173", "BAD_ORIGIN", "test error");
+    bridge.attach();
+    const handler = getHandler();
+    handler({ data: { type: "LOAD_FORM", payload: sampleForm }, origin: "http://localhost:5173" });
 
+    const result = bridge.emitError("BAD_ORIGIN", "test error");
+
+    expect(result).toBe(true);
     expect(postMessageSpy).toHaveBeenCalledWith(
       { type: "ERROR", code: "BAD_ORIGIN", message: "test error" },
       "http://localhost:5173",
     );
+  });
+
+  it("emitSaved returns false and warns when no parent origin captured", () => {
+    const bridge = createBridge(vi.fn(), vi.fn());
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const result = bridge.emitSaved(sampleForm);
+
+    expect(result).toBe(false);
+    expect(postMessageSpy).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
+  it("emitError returns false and warns when no parent origin captured", () => {
+    const bridge = createBridge(vi.fn(), vi.fn());
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const result = bridge.emitError("CODE", "msg");
+
+    expect(result).toBe(false);
+    expect(postMessageSpy).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
+  it("getParentOrigin returns null before any inbound message", () => {
+    const bridge = createBridge(vi.fn(), vi.fn());
+    expect(bridge.getParentOrigin()).toBeNull();
+  });
+
+  it("forwards foreign origins to onForeignOrigin callback", async () => {
+    const onForeignOrigin = vi.fn();
+    const originalEnv = process.env.NEXT_PUBLIC_ALLOWED_ORIGINS;
+    process.env.NEXT_PUBLIC_ALLOWED_ORIGINS = "https://lims.manne.work";
+    vi.resetModules();
+    const { createBridge: createBridgeFresh } = await import("@/src/bridge/postMessage");
+    const bridge = createBridgeFresh(vi.fn(), vi.fn(), undefined, onForeignOrigin);
+    bridge.attach();
+    const handler = getHandler();
+    handler({ data: { type: "LOAD_FORM", payload: sampleForm }, origin: "https://evil.example" });
+
+    expect(onForeignOrigin).toHaveBeenCalledWith("https://evil.example");
+    if (originalEnv === undefined) {
+      delete process.env.NEXT_PUBLIC_ALLOWED_ORIGINS;
+    } else {
+      process.env.NEXT_PUBLIC_ALLOWED_ORIGINS = originalEnv;
+    }
   });
 });

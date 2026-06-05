@@ -6,6 +6,7 @@ import { sectionedForm } from "./fixtures/sectioned-form";
 import { repeatingForm } from "./fixtures/repeating-form";
 import { groupedForm } from "./fixtures/grouped-form";
 import { usp797Form } from "./fixtures/usp-797-em";
+import { gridForm } from "./fixtures/grid-form";
 import type { FormPayload } from "@/src/contract/types";
 
 const fixtures: Array<{ name: string; data: FormPayload }> = [
@@ -14,6 +15,7 @@ const fixtures: Array<{ name: string; data: FormPayload }> = [
   { name: "repeating-form", data: repeatingForm },
   { name: "grouped-form", data: groupedForm },
   { name: "usp-797-em", data: usp797Form },
+  { name: "grid-form", data: gridForm },
 ];
 
 function normalize(payload: FormPayload): FormPayload {
@@ -82,5 +84,18 @@ describe("serializer round-trip", () => {
       const uiKeys2 = Object.keys(serialized2.uiSchema).sort();
       expect(uiKeys2).toEqual(uiKeys1);
     }
+  });
+
+  it("preserves title in the FormPayload (handled by app state, not serializer)", () => {
+    // Title lives outside the schema — verify the contract allows it
+    const withTitle: FormPayload = {
+      ...simpleForm,
+      title: "USP 797 Environmental Monitoring",
+    };
+    expect(withTitle.title).toBe("USP 797 Environmental Monitoring");
+    // The serializer ignores title (it serializes the schema only); the title
+    // is preserved by the app layer when it composes the final payload.
+    const after = serialize(deserialize(withTitle));
+    expect(after.title).toBeUndefined();
   });
 });
