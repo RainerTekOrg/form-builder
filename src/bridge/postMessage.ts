@@ -12,6 +12,7 @@ const ALLOWED_ORIGINS = (process.env.NEXT_PUBLIC_ALLOWED_ORIGINS ?? "").split(",
 type LoadFormHandler = (payload: FormPayload) => void;
 type LoadGroupHandler = (payload: GroupPayload) => void;
 type LoadFillHandler = (payload: FillPayload) => void;
+type SetConfigHandler = (payload: { allowedFieldTypes?: string[]; theme?: "light" | "dark" }) => void;
 type ForeignOriginHandler = (origin: string) => void;
 
 export interface Bridge {
@@ -20,6 +21,8 @@ export interface Bridge {
   emitFilled: (payload: FilledPayload) => boolean;
   emitFillCancelled: () => boolean;
   emitError: (code: string, message: string) => boolean;
+  emitReady: () => boolean;
+  emitDirtyState: (isDirty: boolean) => boolean;
   getParentOrigin: () => string | null;
 }
 
@@ -27,6 +30,7 @@ export function createBridge(
   onLoadForm: LoadFormHandler,
   onLoadGroup: LoadGroupHandler,
   onLoadFill?: LoadFillHandler,
+  onSetConfig?: SetConfigHandler,
   onForeignOrigin?: ForeignOriginHandler,
 ): Bridge {
   let parentOrigin: string | null = null;
@@ -51,6 +55,9 @@ export function createBridge(
         break;
       case "LOAD_FILL":
         onLoadFill?.(data.payload);
+        break;
+      case "SET_CONFIG":
+        onSetConfig?.(data.payload);
         break;
     }
   }
@@ -95,6 +102,22 @@ export function createBridge(
     return true;
   }
 
+  function emitReady(): boolean {
+    const message: OutboundMessage = { type: "BUILDER_READY" };
+    window.parent.postMessage(message, parentOrigin ?? "*");
+    return true;
+  }
+
+  function emitDirtyState(isDirty: boolean): boolean {
+    if (!parentOrigin) {
+      console.warn("[bridge] No parent origin captured yet; cannot emitDirtyState.");
+      return false;
+    }
+    const message: OutboundMessage = { type: "DIRTY_STATE", payload: { isDirty } };
+    window.parent.postMessage(message, parentOrigin);
+    return true;
+  }
+
   function attach() {
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
@@ -106,6 +129,8 @@ export function createBridge(
     emitFilled,
     emitFillCancelled,
     emitError,
+    emitReady,
+    emitDirtyState,
     getParentOrigin: () => parentOrigin,
   };
 }

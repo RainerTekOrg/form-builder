@@ -70,12 +70,14 @@ export function FillPage() {
           toast.error(`Form load failed: ${message}`);
         }
       },
+      undefined,
       (origin) => {
         toast.error(`Rejected message from untrusted origin: ${origin}`);
       },
     );
     bridgeRef.current = bridge;
     const cleanup = bridge.attach();
+    bridge.emitReady();
     return cleanup;
   }, [builderStore]);
 
@@ -98,11 +100,11 @@ export function FillPage() {
 
     const update = () => {
       const fillPayload = fillPayloadRef.current;
-      const required = fillPayload?.schema?.required ?? [];
+      const topLevelRequired = fillPayload?.schema?.required ?? [];
       const allValues = interpreter.getEntitiesValues();
       const allErrors = interpreter.getEntitiesErrors();
       const entities = (builderStore.getSchema() as Schema<typeof formBuilder> as unknown as {
-        entities: Record<string, { type: string; attributes: Record<string, unknown> }>;
+        entities: Record<string, { type: string; attributes: Record<string, unknown>; children?: string[] }>;
       }).entities;
 
       const hasErrors = Object.values(allErrors).some((e) => Boolean(e));
@@ -111,18 +113,39 @@ export function FillPage() {
         return;
       }
 
-      const missingRequired = required.some((propName) => {
-        const entity = Object.values(entities).find(
-          (e) => (e.attributes.key as string) === propName,
-        );
-        if (!entity) return false;
-        const id = Object.keys(entities).find((k) => entities[k] === entity);
-        if (!id) return false;
-        const value = allValues[id];
+      // Build key -> entityId map once
+      const keyToId = new Map<string, string>();
+      for (const [id, ent] of Object.entries(entities)) {
+        const k = ent.attributes.key as string | undefined;
+        if (k) keyToId.set(k, id);
+      }
+
+      // Check top-level required fields
+      const missingTopLevel = topLevelRequired.some((propName) => {
+        const entityId = keyToId.get(propName);
+        if (!entityId) return false;
+        const value = allValues[entityId];
         return value === undefined || value === null || value === "";
       });
+      if (missingTopLevel) {
+        setIsValid(false);
+        return;
+      }
 
-      setIsValid(!missingRequired);
+      // Check nested required fields (inside sections / repeating groups)
+      let nestedMissing = false;
+      for (const [entityId, entity] of Object.entries(entities)) {
+        if (entity.type === "section" || entity.type === "repeating") continue;
+        if (entity.attributes.required === true || entity.attributes.required === "true") {
+          const value = allValues[entityId];
+          if (value === undefined || value === null || value === "") {
+            nestedMissing = true;
+            break;
+          }
+        }
+      }
+
+      setIsValid(!nestedMissing);
     };
 
     update();

@@ -50,6 +50,7 @@ function BuildPage() {
   const bridgeRef = useRef<ReturnType<typeof createBridge> | null>(null);
   const paletteRef = useRef<{ focusSearch: () => void } | null>(null);
   const [isDirty, setIsDirty] = useState(false);
+  const [allowedFieldTypes, setAllowedFieldTypes] = useState<string[] | undefined>(undefined);
 
   const {
     builderStore,
@@ -93,6 +94,14 @@ function BuildPage() {
         toast.success(`Group "${payload.groupId}" added to palette`);
       },
       undefined,
+      (payload) => {
+        if (payload.theme) {
+          document.documentElement.classList.toggle("dark", payload.theme === "dark");
+        }
+        if (payload.allowedFieldTypes) {
+          setAllowedFieldTypes(payload.allowedFieldTypes);
+        }
+      },
       (origin) => {
         toast.error(`Rejected message from untrusted origin: ${origin}`);
       },
@@ -100,6 +109,8 @@ function BuildPage() {
     bridgeRef.current = bridge;
 
     const cleanup = bridge.attach();
+
+    bridge.emitReady();
 
     // Track dirty state: subscribe to schema changes
     const unsub = builderStore.subscribe((_data, events) => {
@@ -114,8 +125,14 @@ function BuildPage() {
           e.name === "SchemaUpdated",
       );
       const isLoad = events.some((e) => e.name === "DataSet");
-      if (isSchemaChange) setIsDirty(true);
-      if (isLoad) setIsDirty(false);
+      if (isSchemaChange) {
+        setIsDirty(true);
+        bridgeRef.current?.emitDirtyState(true);
+      }
+      if (isLoad) {
+        setIsDirty(false);
+        bridgeRef.current?.emitDirtyState(false);
+      }
     });
 
     const saveForm = () => {
@@ -327,7 +344,7 @@ function BuildPage() {
       {mode === "build" ? (
         <div className="flex flex-1 overflow-hidden">
           <div className="w-64 shrink-0 hidden md:block">
-            <Palette ref={paletteRef} onFieldAdd={handleFieldAdd} stagedGroups={stagedGroups} />
+            <Palette ref={paletteRef} onFieldAdd={handleFieldAdd} stagedGroups={stagedGroups} allowedFieldTypes={allowedFieldTypes} />
           </div>
           <div className="flex-1 min-w-0">
             <FormBuilder
