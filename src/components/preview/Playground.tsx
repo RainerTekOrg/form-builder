@@ -78,6 +78,22 @@ export function Playground({
     interpreter.resetEntitiesErrors();
   }, [interpreter]);
 
+  const handleValidateAll = useCallback(() => {
+    const schema = builderStore.getSchema();
+    const queue = [...schema.root];
+    const seen = new Set<string>();
+    while (queue.length > 0) {
+      const entityId = queue.shift()!;
+      if (seen.has(entityId)) continue;
+      seen.add(entityId);
+      interpreter.validateEntityValue(entityId);
+      const entity = (schema as unknown as {
+        entities: Record<string, { children?: string[] }>;
+      }).entities[entityId];
+      if (entity?.children) queue.push(...entity.children);
+    }
+  }, [interpreter, builderStore]);
+
   const fieldGroups = useMemo(
     () => groupFieldsByWidth(schema.root, schema),
     [schema],
@@ -96,10 +112,15 @@ export function Playground({
               {schema.root.length} field{schema.root.length !== 1 ? "s" : ""}
             </Badge>
             {hasEntities && (
-              <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={handleReset}>
-                <RotateCcw className="h-3 w-3" />
-                Reset
-              </Button>
+              <>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleValidateAll}>
+                  Validate
+                </Button>
+                <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={handleReset}>
+                  <RotateCcw className="h-3 w-3" />
+                  Reset
+                </Button>
+              </>
             )}
           </div>
         </div>
