@@ -5,6 +5,7 @@ import {
   keyAttribute,
   unitAttribute,
   formulaAttribute,
+  fieldWidthAttribute,
 } from "../attributes";
 
 export const computedFieldEntity = createEntity({
@@ -14,6 +15,7 @@ export const computedFieldEntity = createEntity({
     keyAttribute,
     unitAttribute,
     formulaAttribute,
+    fieldWidthAttribute,
   ],
   shouldBeProcessed(context) {
     return false;

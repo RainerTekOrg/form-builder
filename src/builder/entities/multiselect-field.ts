@@ -4,9 +4,11 @@ import {
   labelAttribute,
   keyAttribute,
   requiredAttribute,
+  conditionAttribute,
   placeholderAttribute,
   helpTextAttribute,
   optionsAttribute,
+  fieldWidthAttribute,
 } from "../attributes";
 
 export const multiSelectFieldEntity = createEntity({
@@ -15,9 +17,11 @@ export const multiSelectFieldEntity = createEntity({
     labelAttribute,
     keyAttribute,
     requiredAttribute,
+    conditionAttribute,
     placeholderAttribute,
     helpTextAttribute,
     optionsAttribute,
+    fieldWidthAttribute,
   ],
   validate(value) {
     return z.array(z.string()).optional().parse(value);

@@ -4,6 +4,8 @@ import {
   labelAttribute,
   keyAttribute,
   requiredAttribute,
+  conditionAttribute,
+  fieldWidthAttribute,
 } from "../attributes";
 
 export const sectionEntity = createEntity({
@@ -12,6 +14,8 @@ export const sectionEntity = createEntity({
     labelAttribute,
     keyAttribute,
     requiredAttribute,
+    conditionAttribute,
+    fieldWidthAttribute,
   ],
   childrenAllowed: true,
   validate(value) {

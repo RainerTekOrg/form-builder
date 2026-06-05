@@ -4,7 +4,9 @@ import {
   labelAttribute,
   keyAttribute,
   requiredAttribute,
+  conditionAttribute,
   helpTextAttribute,
+  fieldWidthAttribute,
 } from "../attributes";
 
 export const signatureFieldEntity = createEntity({
@@ -13,7 +15,9 @@ export const signatureFieldEntity = createEntity({
     labelAttribute,
     keyAttribute,
     requiredAttribute,
+    conditionAttribute,
     helpTextAttribute,
+    fieldWidthAttribute,
   ],
   validate(value) {
     return z.string().optional().parse(value);

@@ -4,7 +4,9 @@ import {
   labelAttribute,
   keyAttribute,
   requiredAttribute,
+  conditionAttribute,
   helpTextAttribute,
+  fieldWidthAttribute,
 } from "../attributes";
 
 export const booleanFieldEntity = createEntity({
@@ -13,7 +15,9 @@ export const booleanFieldEntity = createEntity({
     labelAttribute,
     keyAttribute,
     requiredAttribute,
+    conditionAttribute,
     helpTextAttribute,
+    fieldWidthAttribute,
   ],
   validate(value) {
     return z.boolean().optional().parse(value);

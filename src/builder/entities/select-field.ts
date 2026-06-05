@@ -4,9 +4,11 @@ import {
   labelAttribute,
   keyAttribute,
   requiredAttribute,
+  conditionAttribute,
   placeholderAttribute,
   helpTextAttribute,
   optionsAttribute,
+  fieldWidthAttribute,
 } from "../attributes";
 
 export const selectFieldEntity = createEntity({
@@ -15,9 +17,11 @@ export const selectFieldEntity = createEntity({
     labelAttribute,
     keyAttribute,
     requiredAttribute,
+    conditionAttribute,
     placeholderAttribute,
     helpTextAttribute,
     optionsAttribute,
+    fieldWidthAttribute,
   ],
   validate(value) {
     return z.string().optional().parse(value);

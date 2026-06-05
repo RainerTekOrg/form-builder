@@ -4,9 +4,11 @@ import {
   labelAttribute,
   keyAttribute,
   requiredAttribute,
+  conditionAttribute,
   placeholderAttribute,
   helpTextAttribute,
   validationAttribute,
+  fieldWidthAttribute,
 } from "../attributes";
 
 export const datetimeFieldEntity = createEntity({
@@ -15,9 +17,11 @@ export const datetimeFieldEntity = createEntity({
     labelAttribute,
     keyAttribute,
     requiredAttribute,
+    conditionAttribute,
     placeholderAttribute,
     helpTextAttribute,
     validationAttribute,
+    fieldWidthAttribute,
   ],
   validate(value) {
     return z.string().optional().parse(value);

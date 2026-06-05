@@ -4,10 +4,12 @@ import {
   labelAttribute,
   keyAttribute,
   requiredAttribute,
+  conditionAttribute,
   placeholderAttribute,
   helpTextAttribute,
   validationAttribute,
   unitAttribute,
+  fieldWidthAttribute,
 } from "../attributes";
 
 export const numberFieldEntity = createEntity({
@@ -16,10 +18,12 @@ export const numberFieldEntity = createEntity({
     labelAttribute,
     keyAttribute,
     requiredAttribute,
+    conditionAttribute,
     placeholderAttribute,
     helpTextAttribute,
     validationAttribute,
     unitAttribute,
+    fieldWidthAttribute,
   ],
   validate(value) {
     return z.number().optional().parse(value);
