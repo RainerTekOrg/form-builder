@@ -18,6 +18,7 @@ export interface JsonSchemaProperty {
   pattern?: string;
   format?: string;
   readOnly?: boolean;
+  default?: unknown;
 }
 
 export interface UiSchema {
@@ -90,10 +91,13 @@ export interface FilledPayload {
 export type InboundMessage =
   | { type: "LOAD_FORM"; payload: FormPayload }
   | { type: "LOAD_GROUP"; payload: GroupPayload }
-  | { type: "LOAD_FILL"; payload: FillPayload };
+  | { type: "LOAD_FILL"; payload: FillPayload }
+  | { type: "SET_CONFIG"; payload: { allowedFieldTypes?: string[]; theme?: "light" | "dark" } };
 
 export type OutboundMessage =
   | { type: "FORM_SAVED"; payload: FormPayload }
   | { type: "FORM_FILLED"; payload: FilledPayload }
   | { type: "FILL_CANCELLED" }
-  | { type: "ERROR"; code: string; message: string };
+  | { type: "ERROR"; code: string; message: string }
+  | { type: "BUILDER_READY" }
+  | { type: "DIRTY_STATE"; payload: { isDirty: boolean } };
