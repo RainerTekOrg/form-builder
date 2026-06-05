@@ -1,7 +1,27 @@
 // @vitest-environment jsdom
 
 import * as React from "react";
-import { describe, expect, it, vi, afterEach } from "vitest";
+import { describe, expect, it, vi, beforeAll, afterEach } from "vitest";
+
+beforeAll(() => {
+  if (typeof ResizeObserver === "undefined") {
+    class MockResizeObserver {
+      observe = vi.fn();
+      unobserve = vi.fn();
+      disconnect = vi.fn();
+    }
+    vi.stubGlobal("ResizeObserver", MockResizeObserver);
+  }
+
+  // Ensure elements report non-zero dimensions in tests
+  Element.prototype.getBoundingClientRect = function () {
+    return {
+      x: 0, y: 0, top: 0, right: 400, bottom: 100, left: 0,
+      width: 400, height: 100,
+      toJSON: () => ({}),
+    };
+  };
+});
 import { render, screen, cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { entityComponents } from "@/src/components/entities/entity-components";
@@ -180,14 +200,14 @@ describe("entity components — render smoke", () => {
     expect(screen.getByText(/upload/i)).toBeInTheDocument();
   });
 
-  it("renders signatureField with signature area", () => {
+  it("renders signatureField with drawing canvas", () => {
     renderEntity(
       entityComponents.signatureField as unknown as AnyEntityComponent,
       signatureFieldEntity,
       { label: "Sign here" },
     );
     expect(screen.getByText("Sign here")).toBeInTheDocument();
-    expect(screen.getByText(/signature area/i)).toBeInTheDocument();
+    expect(screen.getByText(/clear signature/i)).toBeInTheDocument();
   });
 
   it("renders section with empty-state hint when no children", () => {

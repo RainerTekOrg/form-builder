@@ -119,4 +119,132 @@ describe("expandGroup", () => {
     };
     expect(expandGroup(group)).toEqual([]);
   });
+
+  it("extracts fieldWidth from uiSchema", () => {
+    const group: FormPayload = {
+      schema: {
+        type: "object",
+        properties: { name: { type: "string" } },
+      },
+      uiSchema: {
+        name: { "ui:widget": "text", "ui:label": "Name", "ui:width": "half" },
+      },
+    };
+    const entities = expandGroup(group);
+    expect(entities[0].attributes.fieldWidth).toBe("half");
+  });
+
+  it("extracts condition from uiSchema", () => {
+    const group: FormPayload = {
+      schema: {
+        type: "object",
+        properties: { name: { type: "string" } },
+      },
+      uiSchema: {
+        name: {
+          "ui:widget": "text",
+          "ui:label": "Name",
+          "ui:condition": { field: "age", operator: "gt", value: 18 },
+        },
+      },
+    };
+    const entities = expandGroup(group);
+    expect(entities[0].attributes.condition).toEqual({ field: "age", operator: "gt", value: 18 });
+  });
+
+  it("extracts required from schema.required", () => {
+    const group: FormPayload = {
+      schema: {
+        type: "object",
+        required: ["name"],
+        properties: { name: { type: "string" } },
+      },
+      uiSchema: {
+        name: { "ui:widget": "text", "ui:label": "Name" },
+      },
+    };
+    const entities = expandGroup(group);
+    expect(entities[0].attributes.required).toBe(true);
+  });
+
+  it("extracts validation from JSON Schema constraints", () => {
+    const group: FormPayload = {
+      schema: {
+        type: "object",
+        properties: {
+          age: { type: "integer", minimum: 0, maximum: 150 },
+        },
+      },
+      uiSchema: {
+        age: { "ui:widget": "number", "ui:label": "Age" },
+      },
+    };
+    const entities = expandGroup(group);
+    expect(entities[0].attributes.validation).toEqual(
+      expect.arrayContaining([
+        { type: "min", value: 0 },
+        { type: "max", value: 150 },
+      ]),
+    );
+  });
+
+  it("recursively expands nested sections", () => {
+    const group: FormPayload = {
+      schema: {
+        type: "object",
+        properties: {
+          contact: {
+            type: "object",
+            properties: {
+              email: { type: "string" },
+              phone: { type: "string" },
+            },
+          },
+        },
+      },
+      uiSchema: {
+        contact: { "ui:widget": "section", "ui:label": "Contact" },
+        "contact.email": { "ui:widget": "text", "ui:label": "Email" },
+        "contact.phone": { "ui:widget": "text", "ui:label": "Phone" },
+      },
+    };
+    const entities = expandGroup(group);
+    // Should have: section entity + 2 leaf entities
+    expect(entities.length).toBeGreaterThanOrEqual(3);
+    expect(entities[0].type).toBe("section");
+    expect(entities[0].attributes.key).toBe("contact");
+    expect(entities[1].attributes.key).toBe("contact.email");
+    expect(entities[2].attributes.key).toBe("contact.phone");
+  });
+
+  it("recursively expands repeating groups", () => {
+    const group: FormPayload = {
+      schema: {
+        type: "object",
+        properties: {
+          readings: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                time: { type: "string", format: "date-time" },
+                value: { type: "number" },
+              },
+            },
+          },
+        },
+      },
+      uiSchema: {
+        readings: { "ui:widget": "repeating", "ui:label": "Readings" },
+        "readings.time": { "ui:widget": "datetime", "ui:label": "Time" },
+        "readings.value": { "ui:widget": "number", "ui:label": "Value" },
+      },
+    };
+    const entities = expandGroup(group);
+    expect(entities.length).toBeGreaterThanOrEqual(3);
+    expect(entities[0].type).toBe("repeating");
+    expect(entities[0].attributes.key).toBe("readings");
+    expect(entities[1].attributes.key).toBe("readings.time");
+    expect(entities[2].attributes.key).toBe("readings.value");
+  });
 });

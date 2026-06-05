@@ -180,13 +180,75 @@ describe("createBridge", () => {
     expect(bridge.getParentOrigin()).toBeNull();
   });
 
+  it("emitReady posts BUILDER_READY to parent", () => {
+    const bridge = createBridge(vi.fn(), vi.fn());
+    bridge.attach();
+    const handler = getHandler();
+    handler({ data: { type: "LOAD_FORM", payload: sampleForm }, origin: "http://localhost:5173" });
+
+    const result = bridge.emitReady();
+
+    expect(result).toBe(true);
+    expect(postMessageSpy).toHaveBeenCalledWith(
+      { type: "BUILDER_READY" },
+      "http://localhost:5173",
+    );
+  });
+
+  it("emitReady sends to * if no parent origin captured", () => {
+    const bridge = createBridge(vi.fn(), vi.fn());
+    bridge.attach();
+
+    const result = bridge.emitReady();
+
+    expect(result).toBe(true);
+    expect(postMessageSpy).toHaveBeenCalledWith(
+      { type: "BUILDER_READY" },
+      "*",
+    );
+  });
+
+  it("emitDirtyState posts DIRTY_STATE to captured parent origin", () => {
+    const bridge = createBridge(vi.fn(), vi.fn());
+    bridge.attach();
+    const handler = getHandler();
+    handler({ data: { type: "LOAD_FORM", payload: sampleForm }, origin: "http://localhost:5173" });
+
+    const result = bridge.emitDirtyState(true);
+
+    expect(result).toBe(true);
+    expect(postMessageSpy).toHaveBeenCalledWith(
+      { type: "DIRTY_STATE", payload: { isDirty: true } },
+      "http://localhost:5173",
+    );
+  });
+
+  it("calls onSetConfig when SET_CONFIG is received", () => {
+    const onSetConfig = vi.fn();
+    const bridge = createBridge(vi.fn(), vi.fn(), undefined, onSetConfig);
+    bridge.attach();
+    const handler = getHandler();
+    handler({ data: { type: "SET_CONFIG", payload: { theme: "dark" } }, origin: "http://localhost:5173" });
+
+    expect(onSetConfig).toHaveBeenCalledWith({ theme: "dark" });
+  });
+
+  it("ignores SET_CONFIG if onSetConfig is not provided", () => {
+    const bridge = createBridge(vi.fn(), vi.fn());
+    bridge.attach();
+    const handler = getHandler();
+    expect(() => {
+      handler({ data: { type: "SET_CONFIG", payload: { theme: "dark" } }, origin: "http://localhost:5173" });
+    }).not.toThrow();
+  });
+
   it("forwards foreign origins to onForeignOrigin callback", async () => {
     const onForeignOrigin = vi.fn();
     const originalEnv = process.env.NEXT_PUBLIC_ALLOWED_ORIGINS;
     process.env.NEXT_PUBLIC_ALLOWED_ORIGINS = "https://lims.manne.work";
     vi.resetModules();
     const { createBridge: createBridgeFresh } = await import("@/src/bridge/postMessage");
-    const bridge = createBridgeFresh(vi.fn(), vi.fn(), undefined, onForeignOrigin);
+    const bridge = createBridgeFresh(vi.fn(), vi.fn(), undefined, undefined, onForeignOrigin);
     bridge.attach();
     const handler = getHandler();
     handler({ data: { type: "LOAD_FORM", payload: sampleForm }, origin: "https://evil.example" });

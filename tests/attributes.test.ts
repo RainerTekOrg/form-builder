@@ -9,6 +9,7 @@ import { validationAttribute } from "@/src/builder/attributes/validation";
 import { unitAttribute } from "@/src/builder/attributes/unit";
 import { conditionAttribute } from "@/src/builder/attributes/condition";
 import { formulaAttribute } from "@/src/builder/attributes/formula";
+import { defaultValueAttribute } from "@/src/builder/attributes/defaultValue";
 import type { Attribute, AttributeContext } from "@coltorapps/builder";
 
 const mockContext = {
@@ -164,5 +165,23 @@ describe("formulaAttribute", () => {
 
   it("rejects empty strings", () => {
     expect(safeValidate(formulaAttribute, "").success).toBe(false);
+  });
+});
+
+describe("defaultValueAttribute", () => {
+  it("accepts strings", () => {
+    expect(safeValidate(defaultValueAttribute, "hello").success).toBe(true);
+  });
+
+  it("accepts numbers", () => {
+    expect(safeValidate(defaultValueAttribute, 42).success).toBe(true);
+  });
+
+  it("accepts booleans", () => {
+    expect(safeValidate(defaultValueAttribute, true).success).toBe(true);
+  });
+
+  it("accepts undefined", () => {
+    expect(safeValidate(defaultValueAttribute, undefined).success).toBe(true);
   });
 });
