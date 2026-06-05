@@ -9,6 +9,8 @@ import type {
 
 const ALLOWED_ORIGINS = (process.env.NEXT_PUBLIC_ALLOWED_ORIGINS ?? "").split(",").filter(Boolean);
 
+let emitReadyWarned = false;
+
 if (ALLOWED_ORIGINS.length === 0 && process.env.NODE_ENV === "production") {
   console.warn(
     "[bridge] NEXT_PUBLIC_ALLOWED_ORIGINS is not set. In production, all incoming postMessage origins will be accepted. " +
@@ -109,12 +111,10 @@ export function createBridge(
     return true;
   }
 
-  let emitReadyWarned = false;
-
   function emitReady(): boolean {
     const message: OutboundMessage = { type: "BUILDER_READY" };
     const targetOrigin = parentOrigin ?? (ALLOWED_ORIGINS.length > 0 ? ALLOWED_ORIGINS[0] : "*");
-    if (targetOrigin === "*" && !emitReadyWarned) {
+    if (targetOrigin === "*" && !emitReadyWarned && process.env.NODE_ENV !== "production") {
       emitReadyWarned = true;
       console.warn("[bridge] emitReady falling back to '*' — no parent origin captured and no ALLOWED_ORIGINS configured");
     }
