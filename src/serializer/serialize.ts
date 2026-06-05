@@ -53,6 +53,7 @@ export function serialize(schema: ColtorappsSchema): FormPayload {
     if (attrs.helpText) uiEntry["ui:help"] = attrs.helpText as string;
     if (attrs.unit) uiEntry["ui:unit"] = attrs.unit as string;
     if (attrs.condition) uiEntry["ui:condition"] = attrs.condition as UiSchemaEntry["ui:condition"];
+    if (attrs.fieldWidth && attrs.fieldWidth !== "full") uiEntry["ui:width"] = attrs.fieldWidth as UiSchemaEntry["ui:width"];
     if (options && options.length > 0) uiEntry["ui:options"] = options;
 
     const xGroup = attrs["x-group"];

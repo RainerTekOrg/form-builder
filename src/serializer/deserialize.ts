@@ -22,7 +22,7 @@ const fieldTypeToEntity: Record<string, string> = {
 
 const allowedAttrs = new Set([
   "key", "label", "required", "placeholder", "helpText",
-  "options", "validation", "unit", "condition", "formula",
+  "options", "validation", "unit", "condition", "formula", "fieldWidth",
 ]);
 
 function guessEntityType(widget: string | undefined, jsonType?: string): string {
@@ -59,6 +59,7 @@ function buildAttributes(
   if (ui?.["ui:help"]) attrs.helpText = ui["ui:help"];
   if (ui?.["ui:condition"]) attrs.condition = ui["ui:condition"];
   if (ui?.["ui:unit"]) attrs.unit = ui["ui:unit"];
+  if (ui?.["ui:width"]) attrs.fieldWidth = ui["ui:width"];
   if (ui?.["ui:options"]) attrs.options = ui["ui:options"];
 
   if (json.enum) {
