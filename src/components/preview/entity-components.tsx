@@ -36,8 +36,11 @@ import {
   Repeat,
   FunctionSquare,
   X,
+  RefreshCw,
 } from "lucide-react";
-import { useRef, useState, useEffect, type ChangeEvent } from "react";
+import { useRef, useState, useEffect, useMemo, type ChangeEvent } from "react";
+import { useFormValues } from "./FormValueContext";
+import { computeFormula } from "./compute-formula";
 
 function FieldError({ error }: { error: unknown }) {
   if (!error) return null;
@@ -495,23 +498,56 @@ const RepeatingInteractive = createEntityComponent(repeatingEntity, (props) => (
   </div>
 ));
 
-const ComputedFieldInteractive = createEntityComponent(computedFieldEntity, (props) => (
-  <Card>
-    <div className="space-y-1.5">
-      <div className="flex items-center gap-2">
-        <FunctionSquare className="h-4 w-4 text-muted-foreground" />
-        <Label className="text-sm font-medium text-muted-foreground">{props.entity.attributes.label}</Label>
-        <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-mono">auto</Badge>
+const ComputedFieldInteractive = createEntityComponent(computedFieldEntity, (props) => {
+  const { getFieldValue } = useFormValues();
+  const formula = props.entity.attributes.formula ?? "";
+
+  const computed = useMemo(() => {
+    if (!formula) return null;
+    return computeFormula(formula as string, getFieldValue);
+  }, [formula, getFieldValue]);
+
+  return (
+    <Card>
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <FunctionSquare className="h-4 w-4 text-primary/60" />
+          <Label className="text-sm font-semibold">{props.entity.attributes.label}</Label>
+          <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-mono">
+            {props.entity.attributes.unit ? `${formula} ${props.entity.attributes.unit}` : formula}
+          </Badge>
+        </div>
+        <div className={cn(
+          "flex items-center gap-2 rounded-md border px-4 py-3",
+          computed && computed.error
+            ? "border-destructive/50 bg-destructive/5"
+            : "border-primary/20 bg-primary/5",
+        )}>
+          {computed && computed.error ? (
+            <>
+              <RefreshCw className="h-4 w-4 text-destructive shrink-0" />
+              <span className="text-sm text-destructive">{computed.error}</span>
+            </>
+          ) : computed && computed.result !== null ? (
+            <>
+              <FunctionSquare className="h-5 w-5 text-primary/40 shrink-0" />
+              <span className="text-lg font-semibold tabular-nums">
+                {computed.result.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+              </span>
+              {props.entity.attributes.unit && (
+                <span className="text-xs text-muted-foreground">{props.entity.attributes.unit}</span>
+              )}
+            </>
+          ) : (
+            <span className="text-sm text-muted-foreground italic">
+              Waiting for field values…
+            </span>
+          )}
+        </div>
       </div>
-      <div className="flex items-center gap-1.5 rounded-md border border-input bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-        <span className="italic">computed: {props.entity.attributes.formula ?? "—"}</span>
-        {props.entity.attributes.unit && (
-          <span className="text-xs text-muted-foreground">{props.entity.attributes.unit}</span>
-        )}
-      </div>
-    </div>
-  </Card>
-));
+    </Card>
+  );
+});
 
 export const interactiveEntityComponents = {
   textField: TextFieldInteractive,

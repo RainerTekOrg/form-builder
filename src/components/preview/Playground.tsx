@@ -4,11 +4,14 @@ import { useCallback, useEffect, useMemo } from "react";
 import { useInterpreterStore, InterpreterEntity } from "@coltorapps/builder-react";
 import type { BuilderStore, InterpreterStore, Schema } from "@coltorapps/builder";
 import { formBuilder } from "@/src/builder/form-builder";
-import type { FieldWidth } from "@/src/contract/types";
+import type { FieldWidth, UiCondition } from "@/src/contract/types";
 import { interactiveEntityComponents } from "./entity-components";
+import { useConditionalVisibility } from "./useConditionalVisibility";
+import FormValueContext from "./FormValueContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import { Eye, RotateCcw } from "lucide-react";
 
 interface PlaygroundProps {
@@ -94,6 +97,27 @@ export function Playground({
     }
   }, [interpreter, builderStore]);
 
+  const allValues = interpreter.getEntitiesValues();
+  const visibility = useConditionalVisibility(allValues, builderStore);
+
+  const formValueContext = useMemo(() => {
+    const schemaEntities = (builderStore.getSchema() as unknown as {
+      entities: Record<string, { attributes: Record<string, unknown> }>;
+    }).entities;
+    const keyToId = new Map<string, string>();
+    for (const [id, entity] of Object.entries(schemaEntities)) {
+      const k = entity.attributes.key as string | undefined;
+      if (k) keyToId.set(k, id);
+    }
+    return {
+      getFieldValue: (fieldKey: string) => {
+        const entityId = keyToId.get(fieldKey);
+        if (!entityId) return undefined;
+        return allValues[entityId];
+      },
+    };
+  }, [allValues, builderStore]);
+
   const fieldGroups = useMemo(
     () => groupFieldsByWidth(schema.root, schema),
     [schema],
@@ -138,11 +162,13 @@ export function Playground({
             </div>
           </div>
         ) : (
+          <FormValueContext.Provider value={formValueContext}>
           <div className="max-w-2xl mx-auto p-4">
             <div className="space-y-4">
               {fieldGroups.map((group, i) => {
                 if (Array.isArray(group)) {
-                  if (group.length === 0) return null;
+                  const visible = group.filter((e) => visibility[e.entityId] !== false);
+                  if (visible.length === 0) return null;
                   const totalCols = group.reduce((sum, entry) => {
                     const c = entry.width === "full" ? 1 : entry.width === "half" ? 2 : entry.width === "two-thirds" ? 3 : 3;
                     return Math.max(sum, c);
@@ -154,7 +180,7 @@ export function Playground({
                       className="grid gap-4"
                       style={{ gridTemplateColumns: `repeat(${maxCols}, 1fr)` }}
                     >
-                      {group.map((entry) => {
+                      {visible.map((entry) => {
                         const colSpan = entry.width === "full" ? maxCols : entry.width === "half" ? Math.max(1, Math.floor(maxCols / 2)) : entry.width === "two-thirds" ? Math.max(1, Math.floor(maxCols * 2 / 3)) : maxCols;
                         return (
                           <div key={entry.entityId} style={{ gridColumn: `span ${colSpan}` }}>
@@ -169,6 +195,7 @@ export function Playground({
                     </div>
                   );
                 }
+                if (visibility[group.entityId] === false) return null;
                 return (
                   <div key={group.entityId}>
                     <InterpreterEntity
@@ -182,6 +209,7 @@ export function Playground({
             </div>
             <div className="h-4" />
           </div>
+          </FormValueContext.Provider>
         )}
       </ScrollArea>
     </main>
