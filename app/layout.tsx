@@ -42,6 +42,7 @@ export default function RootLayout({
       className={cn(
         "h-full",
         "antialiased",
+        "fb-root",
         geistSans.variable,
         geistMono.variable,
         "font-sans",
@@ -59,7 +60,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col fb-root">
         <TooltipProvider delayDuration={300}>
           {children}
         </TooltipProvider>

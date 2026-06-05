@@ -129,10 +129,11 @@ function PaletteItem({
 interface PaletteProps {
   onFieldAdd: (entityOrGroup: string, label?: string) => void;
   stagedGroups?: Array<{ id: string; label: string; payload?: { schema?: { properties?: Record<string, unknown> } } }>;
+  allowedFieldTypes?: string[];
 }
 
 export const Palette = forwardRef<{ focusSearch: () => void }, PaletteProps>(function Palette(
-  { onFieldAdd, stagedGroups = [] },
+  { onFieldAdd, stagedGroups = [], allowedFieldTypes },
   ref,
 ) {
   const [search, setSearch] = useState("");
@@ -149,9 +150,13 @@ export const Palette = forwardRef<{ focusSearch: () => void }, PaletteProps>(fun
     .map((group) => ({
       ...group,
       items: group.items.filter(
-        (item) =>
-          item.label.toLowerCase().includes(search.toLowerCase()) ||
-          item.entity.toLowerCase().includes(search.toLowerCase()),
+        (item) => {
+          if (allowedFieldTypes && !allowedFieldTypes.includes(item.entity)) return false;
+          return (
+            item.label.toLowerCase().includes(search.toLowerCase()) ||
+            item.entity.toLowerCase().includes(search.toLowerCase())
+          );
+        },
       ),
     }))
     .filter((group) => group.items.length > 0);
