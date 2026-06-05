@@ -1,18 +1,43 @@
-import type { FormPayload, GroupPayload, InboundMessage, OutboundMessage } from "@/src/contract/types";
+import type {
+  FillPayload,
+  FilledPayload,
+  FormPayload,
+  GroupPayload,
+  InboundMessage,
+  OutboundMessage,
+} from "@/src/contract/types";
 
 const ALLOWED_ORIGINS = (process.env.NEXT_PUBLIC_ALLOWED_ORIGINS ?? "").split(",").filter(Boolean);
 
 type LoadFormHandler = (payload: FormPayload) => void;
 type LoadGroupHandler = (payload: GroupPayload) => void;
+type LoadFillHandler = (payload: FillPayload) => void;
+type ForeignOriginHandler = (origin: string) => void;
+
+export interface Bridge {
+  attach: () => () => void;
+  emitSaved: (payload: FormPayload) => boolean;
+  emitFilled: (payload: FilledPayload) => boolean;
+  emitFillCancelled: () => boolean;
+  emitError: (code: string, message: string) => boolean;
+  getParentOrigin: () => string | null;
+}
 
 export function createBridge(
   onLoadForm: LoadFormHandler,
   onLoadGroup: LoadGroupHandler,
-) {
+  onLoadFill?: LoadFillHandler,
+  onForeignOrigin?: ForeignOriginHandler,
+): Bridge {
+  let parentOrigin: string | null = null;
+
   function handleMessage(event: MessageEvent) {
     if (ALLOWED_ORIGINS.length > 0 && !ALLOWED_ORIGINS.includes(event.origin)) {
+      onForeignOrigin?.(event.origin);
       return;
     }
+
+    parentOrigin = event.origin;
 
     const data = event.data as InboundMessage;
     if (!data || !data.type) return;
@@ -24,21 +49,50 @@ export function createBridge(
       case "LOAD_GROUP":
         onLoadGroup(data.payload);
         break;
+      case "LOAD_FILL":
+        onLoadFill?.(data.payload);
+        break;
     }
   }
 
-  function emitSaved(targetOrigin: string, payload: FormPayload) {
-    if (ALLOWED_ORIGINS.length > 0 && !ALLOWED_ORIGINS.includes(targetOrigin)) {
-      console.warn(`[bridge] Blocked FORM_SAVED to untrusted origin: ${targetOrigin}`);
-      return;
+  function emitSaved(payload: FormPayload): boolean {
+    if (!parentOrigin) {
+      console.warn("[bridge] No parent origin captured yet; cannot emitSaved. Did the host send a message first?");
+      return false;
     }
     const message: OutboundMessage = { type: "FORM_SAVED", payload };
-    window.parent.postMessage(message, targetOrigin);
+    window.parent.postMessage(message, parentOrigin);
+    return true;
   }
 
-  function emitError(targetOrigin: string, code: string, message: string) {
+  function emitFilled(payload: FilledPayload): boolean {
+    if (!parentOrigin) {
+      console.warn("[bridge] No parent origin captured yet; cannot emitFilled.");
+      return false;
+    }
+    const message: OutboundMessage = { type: "FORM_FILLED", payload };
+    window.parent.postMessage(message, parentOrigin);
+    return true;
+  }
+
+  function emitFillCancelled(): boolean {
+    if (!parentOrigin) {
+      console.warn("[bridge] No parent origin captured yet; cannot emitFillCancelled.");
+      return false;
+    }
+    const message: OutboundMessage = { type: "FILL_CANCELLED" };
+    window.parent.postMessage(message, parentOrigin);
+    return true;
+  }
+
+  function emitError(code: string, message: string): boolean {
+    if (!parentOrigin) {
+      console.warn(`[bridge] No parent origin captured yet; cannot emitError ${code}.`);
+      return false;
+    }
     const msg: OutboundMessage = { type: "ERROR", code, message };
-    window.parent.postMessage(msg, targetOrigin);
+    window.parent.postMessage(msg, parentOrigin);
+    return true;
   }
 
   function attach() {
@@ -46,5 +100,12 @@ export function createBridge(
     return () => window.removeEventListener("message", handleMessage);
   }
 
-  return { attach, emitSaved, emitError };
+  return {
+    attach,
+    emitSaved,
+    emitFilled,
+    emitFillCancelled,
+    emitError,
+    getParentOrigin: () => parentOrigin,
+  };
 }
