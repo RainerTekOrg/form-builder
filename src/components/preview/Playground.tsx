@@ -1,53 +1,113 @@
 "use client";
 
-import { useState } from "react";
-import { useInterpreterStore, InterpreterEntities } from "@coltorapps/builder-react";
-import type { BuilderStore } from "@coltorapps/builder";
+import { useCallback, useEffect, useMemo } from "react";
+import { useInterpreterStore, InterpreterEntity } from "@coltorapps/builder-react";
+import type { BuilderStore, InterpreterStore, Schema } from "@coltorapps/builder";
 import { formBuilder } from "@/src/builder/form-builder";
+import type { FieldWidth } from "@/src/contract/types";
 import { interactiveEntityComponents } from "./entity-components";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Eye, RotateCcw, Info } from "lucide-react";
+import { Eye, RotateCcw } from "lucide-react";
 
 interface PlaygroundProps {
   builderStore: BuilderStore<typeof formBuilder>;
+  hideHeader?: boolean;
+  onInterpreterReady?: (interpreter: InterpreterStore<typeof formBuilder>) => void;
 }
 
-export function Playground({ builderStore }: PlaygroundProps) {
+type FieldWidthEntry = {
+  entityId: string;
+  width: FieldWidth;
+};
+
+function getFieldWidth(entity: { attributes?: Record<string, unknown> } | undefined): FieldWidth {
+  return (entity?.attributes?.["fieldWidth"] as FieldWidth) ?? "full";
+}
+
+function groupFieldsByWidth(
+  root: readonly string[],
+  schema: Schema<typeof formBuilder>,
+): (FieldWidthEntry | FieldWidthEntry[])[] {
+  const groups: (FieldWidthEntry | FieldWidthEntry[])[] = [];
+  let currentRow: FieldWidthEntry[] = [];
+
+  for (const entityId of root) {
+    const entity = (schema as unknown as {
+      entities: Record<string, { attributes?: Record<string, unknown> }>;
+    }).entities[entityId];
+    const width = getFieldWidth(entity);
+
+    if (width === "full") {
+      if (currentRow.length > 0) {
+        groups.push(currentRow);
+        currentRow = [];
+      }
+      groups.push({ entityId, width });
+    } else {
+      currentRow.push({ entityId, width });
+    }
+  }
+
+  if (currentRow.length > 0) {
+    groups.push(currentRow);
+  }
+
+  return groups;
+}
+
+export function Playground({
+  builderStore,
+  hideHeader = false,
+  onInterpreterReady,
+}: PlaygroundProps) {
   const schema = builderStore.getSchema();
   const hasEntities = schema.root.length > 0;
 
   const interpreter = useInterpreterStore(formBuilder, schema);
 
-  const handleReset = () => {
+  useEffect(() => {
+    if (onInterpreterReady && hasEntities) {
+      onInterpreterReady(interpreter);
+    }
+  }, [interpreter, hasEntities, onInterpreterReady]);
+
+  const handleReset = useCallback(() => {
     interpreter.resetEntitiesValues();
     interpreter.resetEntitiesErrors();
-  };
+  }, [interpreter]);
+
+  const fieldGroups = useMemo(
+    () => groupFieldsByWidth(schema.root, schema),
+    [schema],
+  );
 
   return (
     <main className="flex h-full flex-col overflow-hidden">
-      <div className="flex items-center justify-between border-b px-4 py-2 shrink-0">
-        <div className="flex items-center gap-2">
-          <Eye className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">Preview</h2>
+      {!hideHeader && (
+        <div className="flex items-center justify-between border-b px-4 py-2 shrink-0">
+          <div className="flex items-center gap-2">
+            <Eye className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold">Preview</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-xs font-mono">
+              {schema.root.length} field{schema.root.length !== 1 ? "s" : ""}
+            </Badge>
+            {hasEntities && (
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={handleReset}>
+                <RotateCcw className="h-3 w-3" />
+                Reset
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded flex items-center gap-1">
-            <Info className="h-3 w-3" />
-            Preview only
-          </span>
-          {hasEntities && (
-            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={handleReset}>
-              <RotateCcw className="h-3 w-3" />
-              Reset
-            </Button>
-          )}
-        </div>
-      </div>
+      )}
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         {!hasEntities ? (
-          <div className="flex h-full items-center justify-center p-8">
+          <div className="flex h-full items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/20 p-8">
             <div className="text-center max-w-xs">
               <Eye className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
               <h3 className="text-sm font-medium mb-1">Nothing to preview</h3>
@@ -57,11 +117,49 @@ export function Playground({ builderStore }: PlaygroundProps) {
             </div>
           </div>
         ) : (
-          <div className="max-w-2xl mx-auto p-6 space-y-5">
-            <InterpreterEntities
-              interpreterStore={interpreter}
-              components={interactiveEntityComponents}
-            />
+          <div className="max-w-2xl mx-auto p-4">
+            <div className="space-y-4">
+              {fieldGroups.map((group, i) => {
+                if (Array.isArray(group)) {
+                  if (group.length === 0) return null;
+                  const totalCols = group.reduce((sum, entry) => {
+                    const c = entry.width === "full" ? 1 : entry.width === "half" ? 2 : entry.width === "two-thirds" ? 3 : 3;
+                    return Math.max(sum, c);
+                  }, 1);
+                  const maxCols = Math.min(totalCols, 3);
+                  return (
+                    <div
+                      key={i}
+                      className="grid gap-4"
+                      style={{ gridTemplateColumns: `repeat(${maxCols}, 1fr)` }}
+                    >
+                      {group.map((entry) => {
+                        const colSpan = entry.width === "full" ? maxCols : entry.width === "half" ? Math.max(1, Math.floor(maxCols / 2)) : entry.width === "two-thirds" ? Math.max(1, Math.floor(maxCols * 2 / 3)) : maxCols;
+                        return (
+                          <div key={entry.entityId} style={{ gridColumn: `span ${colSpan}` }}>
+                            <InterpreterEntity
+                              interpreterStore={interpreter}
+                              entityId={entry.entityId}
+                              components={interactiveEntityComponents}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                }
+                return (
+                  <div key={group.entityId}>
+                    <InterpreterEntity
+                      interpreterStore={interpreter}
+                      entityId={group.entityId}
+                      components={interactiveEntityComponents}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="h-4" />
           </div>
         )}
       </ScrollArea>
