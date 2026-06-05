@@ -9,3 +9,4 @@ export { UnitAttribute } from "./UnitAttribute";
 export { ConditionAttribute } from "./ConditionAttribute";
 export { FormulaAttribute } from "./FormulaAttribute";
 export { FieldWidthAttribute } from "./FieldWidthAttribute";
+export { DefaultValueAttribute } from "./DefaultValueAttribute";

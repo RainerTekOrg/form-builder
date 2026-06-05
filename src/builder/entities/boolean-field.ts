@@ -7,6 +7,7 @@ import {
   conditionAttribute,
   helpTextAttribute,
   fieldWidthAttribute,
+  defaultValueAttribute,
 } from "../attributes";
 
 export const booleanFieldEntity = createEntity({
@@ -17,6 +18,7 @@ export const booleanFieldEntity = createEntity({
     requiredAttribute,
     conditionAttribute,
     helpTextAttribute,
+    defaultValueAttribute,
     fieldWidthAttribute,
   ],
   validate(value) {

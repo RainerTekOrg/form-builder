@@ -9,6 +9,7 @@ import {
   helpTextAttribute,
   optionsAttribute,
   fieldWidthAttribute,
+  defaultValueAttribute,
 } from "../attributes";
 
 export const selectFieldEntity = createEntity({
@@ -21,6 +22,7 @@ export const selectFieldEntity = createEntity({
     placeholderAttribute,
     helpTextAttribute,
     optionsAttribute,
+    defaultValueAttribute,
     fieldWidthAttribute,
   ],
   validate(value) {

@@ -9,3 +9,4 @@ export { unitAttribute } from "./unit";
 export { conditionAttribute, conditionSchema } from "./condition";
 export { formulaAttribute } from "./formula";
 export { fieldWidthAttribute } from "./fieldWidth";
+export { defaultValueAttribute } from "./defaultValue";

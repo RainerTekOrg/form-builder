@@ -9,6 +9,7 @@ import {
   helpTextAttribute,
   validationAttribute,
   fieldWidthAttribute,
+  defaultValueAttribute,
 } from "../attributes";
 
 export const textareaFieldEntity = createEntity({
@@ -21,6 +22,7 @@ export const textareaFieldEntity = createEntity({
     placeholderAttribute,
     helpTextAttribute,
     validationAttribute,
+    defaultValueAttribute,
     fieldWidthAttribute,
   ],
   validate(value) {

@@ -7,7 +7,7 @@ import { OptionsAttribute } from "./OptionsAttribute";
 import { ValidationAttribute } from "./ValidationAttribute";
 import { UnitAttribute } from "./UnitAttribute";
 import { ConditionAttribute } from "./ConditionAttribute";
-import { FormulaAttribute, FieldWidthAttribute } from ".";
+import { FormulaAttribute, FieldWidthAttribute, DefaultValueAttribute } from ".";
 import { Separator } from "@/components/ui/separator";
 
 function Section({ children }: { children: React.ReactNode }) {
@@ -30,6 +30,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <AttrDivider />
       <ValidationAttribute />
       <AttrDivider />
+      <DefaultValueAttribute />
+      <AttrDivider />
       <ConditionAttribute />
       <AttrDivider />
       <FieldWidthAttribute />
@@ -45,6 +47,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <HelpTextAttribute />
       <AttrDivider />
       <ValidationAttribute />
+      <AttrDivider />
+      <DefaultValueAttribute />
       <AttrDivider />
       <ConditionAttribute />
       <AttrDivider />
@@ -63,6 +67,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <AttrDivider />
       <ValidationAttribute />
       <AttrDivider />
+      <DefaultValueAttribute />
+      <AttrDivider />
       <ConditionAttribute />
       <AttrDivider />
       <FieldWidthAttribute />
@@ -80,6 +86,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <AttrDivider />
       <ValidationAttribute />
       <AttrDivider />
+      <DefaultValueAttribute />
+      <AttrDivider />
       <ConditionAttribute />
       <AttrDivider />
       <FieldWidthAttribute />
@@ -95,6 +103,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <HelpTextAttribute />
       <AttrDivider />
       <OptionsAttribute />
+      <AttrDivider />
+      <DefaultValueAttribute />
       <AttrDivider />
       <ConditionAttribute />
       <AttrDivider />
@@ -112,6 +122,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <AttrDivider />
       <OptionsAttribute />
       <AttrDivider />
+      <DefaultValueAttribute />
+      <AttrDivider />
       <ConditionAttribute />
       <AttrDivider />
       <FieldWidthAttribute />
@@ -124,6 +136,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <AttrDivider />
       <RequiredAttribute />
       <HelpTextAttribute />
+      <AttrDivider />
+      <DefaultValueAttribute />
       <AttrDivider />
       <ConditionAttribute />
       <AttrDivider />
@@ -141,6 +155,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <AttrDivider />
       <ValidationAttribute />
       <AttrDivider />
+      <DefaultValueAttribute />
+      <AttrDivider />
       <ConditionAttribute />
       <AttrDivider />
       <FieldWidthAttribute />
@@ -156,6 +172,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <HelpTextAttribute />
       <AttrDivider />
       <ValidationAttribute />
+      <AttrDivider />
+      <DefaultValueAttribute />
       <AttrDivider />
       <ConditionAttribute />
       <AttrDivider />

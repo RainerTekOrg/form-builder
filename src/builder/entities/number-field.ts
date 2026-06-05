@@ -10,6 +10,7 @@ import {
   validationAttribute,
   unitAttribute,
   fieldWidthAttribute,
+  defaultValueAttribute,
 } from "../attributes";
 
 export const numberFieldEntity = createEntity({
@@ -23,6 +24,7 @@ export const numberFieldEntity = createEntity({
     helpTextAttribute,
     validationAttribute,
     unitAttribute,
+    defaultValueAttribute,
     fieldWidthAttribute,
   ],
   validate(value) {

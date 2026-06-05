@@ -9,6 +9,7 @@ import {
   helpTextAttribute,
   optionsAttribute,
   fieldWidthAttribute,
+  defaultValueAttribute,
 } from "../attributes";
 
 export const multiSelectFieldEntity = createEntity({
@@ -21,6 +22,7 @@ export const multiSelectFieldEntity = createEntity({
     placeholderAttribute,
     helpTextAttribute,
     optionsAttribute,
+    defaultValueAttribute,
     fieldWidthAttribute,
   ],
   validate(value) {
