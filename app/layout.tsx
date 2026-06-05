@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono, Noto_Sans, Playfair_Display } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/src/components/ui/toaster";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
@@ -46,11 +48,22 @@ export default function RootLayout({
         notoSans.variable,
         playfairDisplayHeading.variable,
       )}
+      suppressHydrationWarning
     >
+      <head>
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("form-builder-theme");if(t==="dark"||(!t&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark");}}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">
         <TooltipProvider delayDuration={300}>
           {children}
         </TooltipProvider>
+        <Toaster />
       </body>
     </html>
   );

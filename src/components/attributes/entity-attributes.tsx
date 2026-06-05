@@ -7,11 +7,11 @@ import { OptionsAttribute } from "./OptionsAttribute";
 import { ValidationAttribute } from "./ValidationAttribute";
 import { UnitAttribute } from "./UnitAttribute";
 import { ConditionAttribute } from "./ConditionAttribute";
-import { FormulaAttribute } from "./FormulaAttribute";
+import { FormulaAttribute, FieldWidthAttribute } from ".";
 import { Separator } from "@/components/ui/separator";
 
 function Section({ children }: { children: React.ReactNode }) {
-  return <div className="space-y-3">{children}</div>;
+  return <div className="space-y-3 px-4 py-3">{children}</div>;
 }
 
 function AttrDivider() {
@@ -31,6 +31,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <ValidationAttribute />
       <AttrDivider />
       <ConditionAttribute />
+      <AttrDivider />
+      <FieldWidthAttribute />
     </Section>
   ),
   textareaField: () => (
@@ -45,6 +47,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <ValidationAttribute />
       <AttrDivider />
       <ConditionAttribute />
+      <AttrDivider />
+      <FieldWidthAttribute />
     </Section>
   ),
   numberField: () => (
@@ -60,6 +64,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <ValidationAttribute />
       <AttrDivider />
       <ConditionAttribute />
+      <AttrDivider />
+      <FieldWidthAttribute />
     </Section>
   ),
   integerField: () => (
@@ -75,6 +81,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <ValidationAttribute />
       <AttrDivider />
       <ConditionAttribute />
+      <AttrDivider />
+      <FieldWidthAttribute />
     </Section>
   ),
   selectField: () => (
@@ -89,6 +97,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <OptionsAttribute />
       <AttrDivider />
       <ConditionAttribute />
+      <AttrDivider />
+      <FieldWidthAttribute />
     </Section>
   ),
   multiSelectField: () => (
@@ -103,6 +113,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <OptionsAttribute />
       <AttrDivider />
       <ConditionAttribute />
+      <AttrDivider />
+      <FieldWidthAttribute />
     </Section>
   ),
   booleanField: () => (
@@ -114,6 +126,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <HelpTextAttribute />
       <AttrDivider />
       <ConditionAttribute />
+      <AttrDivider />
+      <FieldWidthAttribute />
     </Section>
   ),
   dateField: () => (
@@ -128,6 +142,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <ValidationAttribute />
       <AttrDivider />
       <ConditionAttribute />
+      <AttrDivider />
+      <FieldWidthAttribute />
     </Section>
   ),
   datetimeField: () => (
@@ -142,6 +158,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <ValidationAttribute />
       <AttrDivider />
       <ConditionAttribute />
+      <AttrDivider />
+      <FieldWidthAttribute />
     </Section>
   ),
   fileField: () => (
@@ -153,6 +171,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <HelpTextAttribute />
       <AttrDivider />
       <ConditionAttribute />
+      <AttrDivider />
+      <FieldWidthAttribute />
     </Section>
   ),
   signatureField: () => (
@@ -164,6 +184,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <HelpTextAttribute />
       <AttrDivider />
       <ConditionAttribute />
+      <AttrDivider />
+      <FieldWidthAttribute />
     </Section>
   ),
   section: () => (
@@ -172,6 +194,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <LabelAttribute />
       <AttrDivider />
       <ConditionAttribute />
+      <AttrDivider />
+      <FieldWidthAttribute />
     </Section>
   ),
   repeating: () => (
@@ -180,6 +204,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <LabelAttribute />
       <AttrDivider />
       <ConditionAttribute />
+      <AttrDivider />
+      <FieldWidthAttribute />
     </Section>
   ),
   computedField: () => (
@@ -189,6 +215,8 @@ export const entityAttributesComponents: EntitiesAttributesComponents<typeof for
       <AttrDivider />
       <UnitAttribute />
       <FormulaAttribute />
+      <AttrDivider />
+      <FieldWidthAttribute />
     </Section>
   ),
 };
