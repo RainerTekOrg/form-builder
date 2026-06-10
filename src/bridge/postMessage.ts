@@ -36,6 +36,54 @@ export interface Bridge {
   getParentOrigin: () => string | null;
 }
 
+function hasWildcard(pattern: string): boolean {
+  return pattern.includes("*");
+}
+
+function matchOrigin(origin: string, pattern: string): boolean {
+  if (pattern === origin) return true;
+  if (!hasWildcard(pattern)) return false;
+
+  try {
+    const originUrl = new URL(origin);
+
+    if (pattern.startsWith("https://*.")) {
+      const suffix = pattern.slice("https://*.".length);
+      return originUrl.protocol === "https:" && originUrl.hostname.endsWith(`.${suffix}`);
+    }
+
+    if (pattern.startsWith("http://*.")) {
+      const suffix = pattern.slice("http://*.".length);
+      return originUrl.protocol === "http:" && originUrl.hostname.endsWith(`.${suffix}`);
+    }
+
+    if (pattern.startsWith("*.")) {
+      const suffix = pattern.slice(2);
+      return originUrl.hostname.endsWith(`.${suffix}`);
+    }
+
+    if (pattern === "*") return true;
+
+    const re = new RegExp(`^${pattern.replace(/\*/g, ".*").replace(/[.+?^${}()|[\]\\]/g, "\\$&")}$`);
+    return re.test(origin);
+  } catch {
+    return false;
+  }
+}
+
+function isOriginAllowed(origin: string): boolean {
+  if (ALLOWED_ORIGINS.length === 0) return true;
+  return ALLOWED_ORIGINS.some((allowed) => matchOrigin(origin, allowed));
+}
+
+function resolveEmitTarget(): string {
+  if (parentOrigin) return parentOrigin;
+  if (ALLOWED_ORIGINS.length > 0 && !ALLOWED_ORIGINS.some(hasWildcard)) {
+    return ALLOWED_ORIGINS[0];
+  }
+  return "*";
+}
+
 export function createBridge(
   onLoadForm: LoadFormHandler,
   onLoadGroup: LoadGroupHandler,
@@ -47,7 +95,7 @@ export function createBridge(
   let parentOrigin: string | null = null;
 
   function handleMessage(event: MessageEvent) {
-    if (ALLOWED_ORIGINS.length > 0 && !ALLOWED_ORIGINS.includes(event.origin)) {
+    if (!isOriginAllowed(event.origin)) {
       onForeignOrigin?.(event.origin);
       return;
     }
@@ -118,7 +166,7 @@ export function createBridge(
 
   function emitReady(): boolean {
     const message: OutboundMessage = { type: "BUILDER_READY" };
-    const targetOrigin = parentOrigin ?? (ALLOWED_ORIGINS.length > 0 ? ALLOWED_ORIGINS[0] : "*");
+    const targetOrigin = resolveEmitTarget();
     if (targetOrigin === "*" && !emitReadyWarned && process.env.NODE_ENV !== "production") {
       emitReadyWarned = true;
       console.warn("[bridge] emitReady falling back to '*' — no parent origin captured and no ALLOWED_ORIGINS configured");

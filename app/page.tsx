@@ -46,6 +46,8 @@ function BuildPage({ hideHeader = false }: { hideHeader?: boolean }) {
   const [mode, setMode] = useState<"build" | "preview">("build");
   const [stagedGroups, setStagedGroups] = useState<Array<{ id: string; label: string; payload: GroupPayload }>>([]);
   const [title, setTitle] = useState("Untitled form");
+  const titleRef = useRef(title);
+  useEffect(() => { titleRef.current = title; }, [title]);
   const [clearOpen, setClearOpen] = useState(false);
   const bridgeRef = useRef<ReturnType<typeof createBridge> | null>(null);
   const paletteRef = useRef<{ focusSearch: () => void } | null>(null);
@@ -299,7 +301,7 @@ function BuildPage({ hideHeader = false }: { hideHeader?: boolean }) {
   const handleSave = useCallback(() => {
     const schema = builderStore.getSchema();
     const payload = serialize(schema);
-    const full: FormPayload = { title, ...payload };
+    const full: FormPayload = { title: titleRef.current, ...payload };
     const sent = bridgeRef.current?.emitSaved(full) ?? false;
     if (sent) {
       setIsDirty(false);
@@ -307,7 +309,7 @@ function BuildPage({ hideHeader = false }: { hideHeader?: boolean }) {
     } else {
       toast.error("Form saved locally, but no host is connected to receive it. Use Export to download JSON.");
     }
-  }, [builderStore, title]);
+  }, [builderStore]);
 
   const handleClear = useCallback(() => {
     if (builderStore.getSchema().root.length === 0) {
