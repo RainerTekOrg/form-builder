@@ -19,9 +19,7 @@ import { computedFieldEntity } from "@/src/builder/entities/computed-field-entit
 import { useRef, useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RequiredIndicator } from "@/src/components/ui/required-indicator";
 import {
   Select,
   SelectContent,
@@ -32,13 +30,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Upload, PenLine, Layers, Repeat, Plus, FunctionSquare, X } from "lucide-react";
+import { FieldHeader } from "@/src/components/ui/field-header";
 
 const TextFieldEntity = createEntityComponent(textFieldEntity, (props) => (
   <div className="space-y-1.5">
-    <Label className="text-sm font-medium">
-      {props.entity.attributes.label}
-      {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-    </Label>
+    <FieldHeader
+      entityId={props.entity.id}
+      label={props.entity.attributes.label as string}
+      required={props.entity.attributes.required as boolean}
+      builderStore={props.builderStore}
+    />
     <Input
       placeholder={props.entity.attributes.placeholder ?? ""}
       disabled
@@ -52,10 +53,12 @@ const TextFieldEntity = createEntityComponent(textFieldEntity, (props) => (
 
 const TextareaFieldEntity = createEntityComponent(textareaFieldEntity, (props) => (
   <div className="space-y-1.5">
-    <Label className="text-sm font-medium">
-      {props.entity.attributes.label}
-      {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-    </Label>
+    <FieldHeader
+      entityId={props.entity.id}
+      label={props.entity.attributes.label as string}
+      required={props.entity.attributes.required as boolean}
+      builderStore={props.builderStore}
+    />
     <Textarea
       placeholder={props.entity.attributes.placeholder ?? ""}
       disabled
@@ -69,10 +72,12 @@ const TextareaFieldEntity = createEntityComponent(textareaFieldEntity, (props) =
 
 const NumberFieldEntity = createEntityComponent(numberFieldEntity, (props) => (
   <div className="space-y-1.5">
-    <Label className="text-sm font-medium">
-      {props.entity.attributes.label}
-      {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-    </Label>
+    <FieldHeader
+      entityId={props.entity.id}
+      label={props.entity.attributes.label as string}
+      required={props.entity.attributes.required as boolean}
+      builderStore={props.builderStore}
+    />
     <div className="flex items-center gap-1.5">
       <Input
         type="number"
@@ -94,10 +99,12 @@ const NumberFieldEntity = createEntityComponent(numberFieldEntity, (props) => (
 
 const IntegerFieldEntity = createEntityComponent(integerFieldEntity, (props) => (
   <div className="space-y-1.5">
-    <Label className="text-sm font-medium">
-      {props.entity.attributes.label}
-      {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-    </Label>
+    <FieldHeader
+      entityId={props.entity.id}
+      label={props.entity.attributes.label as string}
+      required={props.entity.attributes.required as boolean}
+      builderStore={props.builderStore}
+    />
     <div className="flex items-center gap-1.5">
       <Input
         type="number"
@@ -118,16 +125,18 @@ const IntegerFieldEntity = createEntityComponent(integerFieldEntity, (props) => 
 
 const SelectFieldEntity = createEntityComponent(selectFieldEntity, (props) => (
   <div className="space-y-1.5">
-    <Label className="text-sm font-medium">
-      {props.entity.attributes.label}
-      {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-    </Label>
+    <FieldHeader
+      entityId={props.entity.id}
+      label={props.entity.attributes.label as string}
+      required={props.entity.attributes.required as boolean}
+      builderStore={props.builderStore}
+    />
     <Select disabled>
       <SelectTrigger className="bg-muted/50">
         <SelectValue placeholder={props.entity.attributes.placeholder ?? "Select..."} />
       </SelectTrigger>
       <SelectContent>
-        {props.entity.attributes.options?.map((opt) => (
+        {props.entity.attributes.options?.map((opt: { value: string; label: string }) => (
           <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
         ))}
       </SelectContent>
@@ -140,12 +149,14 @@ const SelectFieldEntity = createEntityComponent(selectFieldEntity, (props) => (
 
 const MultiSelectFieldEntity = createEntityComponent(multiSelectFieldEntity, (props) => (
   <div className="space-y-1.5">
-    <Label className="text-sm font-medium">
-      {props.entity.attributes.label}
-      {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-    </Label>
+    <FieldHeader
+      entityId={props.entity.id}
+      label={props.entity.attributes.label as string}
+      required={props.entity.attributes.required as boolean}
+      builderStore={props.builderStore}
+    />
     <div className="flex min-h-9 flex-wrap gap-1 rounded-md border border-input bg-muted/50 px-3 py-2">
-      {props.entity.attributes.options?.slice(0, 3).map((opt) => (
+      {props.entity.attributes.options?.slice(0, 3).map((opt: { value: string; label: string }) => (
         <Badge key={opt.value} variant="secondary" className="text-xs">{opt.label}</Badge>
       ))}
       {(props.entity.attributes.options?.length ?? 0) > 3 && (
@@ -167,10 +178,14 @@ const BooleanFieldEntity = createEntityComponent(booleanFieldEntity, (props) => 
   <div className="space-y-1.5">
     <div className="flex items-center gap-2">
       <Checkbox disabled id={`bool-${props.entity.id}`} />
-      <Label htmlFor={`bool-${props.entity.id}`} className="text-sm font-medium">
-        {props.entity.attributes.label}
-        {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-      </Label>
+      <div className="flex-1 min-w-0">
+        <FieldHeader
+          entityId={props.entity.id}
+          label={props.entity.attributes.label as string}
+          required={props.entity.attributes.required as boolean}
+          builderStore={props.builderStore}
+        />
+      </div>
     </div>
     {props.entity.attributes.helpText && (
       <p className="text-xs text-muted-foreground pl-6">{props.entity.attributes.helpText}</p>
@@ -180,10 +195,12 @@ const BooleanFieldEntity = createEntityComponent(booleanFieldEntity, (props) => 
 
 const DateFieldEntity = createEntityComponent(dateFieldEntity, (props) => (
   <div className="space-y-1.5">
-    <Label className="text-sm font-medium">
-      {props.entity.attributes.label}
-      {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-    </Label>
+    <FieldHeader
+      entityId={props.entity.id}
+      label={props.entity.attributes.label as string}
+      required={props.entity.attributes.required as boolean}
+      builderStore={props.builderStore}
+    />
     <Input type="date" disabled className="bg-muted/50" />
     {props.entity.attributes.helpText && (
       <p className="text-xs text-muted-foreground">{props.entity.attributes.helpText}</p>
@@ -193,10 +210,12 @@ const DateFieldEntity = createEntityComponent(dateFieldEntity, (props) => (
 
 const DatetimeFieldEntity = createEntityComponent(datetimeFieldEntity, (props) => (
   <div className="space-y-1.5">
-    <Label className="text-sm font-medium">
-      {props.entity.attributes.label}
-      {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-    </Label>
+    <FieldHeader
+      entityId={props.entity.id}
+      label={props.entity.attributes.label as string}
+      required={props.entity.attributes.required as boolean}
+      builderStore={props.builderStore}
+    />
     <Input type="datetime-local" disabled className="bg-muted/50" />
     {props.entity.attributes.helpText && (
       <p className="text-xs text-muted-foreground">{props.entity.attributes.helpText}</p>
@@ -210,10 +229,12 @@ const FileFieldEntity = createEntityComponent(fileFieldEntity, (props) => {
 
   return (
     <div className="space-y-1.5">
-      <Label className="text-sm font-medium">
-        {props.entity.attributes.label}
-        {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-      </Label>
+      <FieldHeader
+        entityId={props.entity.id}
+        label={props.entity.attributes.label as string}
+        required={props.entity.attributes.required as boolean}
+        builderStore={props.builderStore}
+      />
       <div
         className="flex items-center gap-2 rounded-md border border-dashed border-input bg-muted/30 px-3 py-4 text-sm text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors"
         onClick={() => fileRef.current?.click()}
@@ -311,10 +332,12 @@ const SignatureFieldEntity = createEntityComponent(signatureFieldEntity, (props)
 
   return (
     <div className="space-y-1.5">
-      <Label className="text-sm font-medium">
-        {props.entity.attributes.label}
-        {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-      </Label>
+      <FieldHeader
+        entityId={props.entity.id}
+        label={props.entity.attributes.label as string}
+        required={props.entity.attributes.required as boolean}
+        builderStore={props.builderStore}
+      />
       <canvas
         ref={canvasRef}
         className="w-full h-24 rounded-md border border-dashed border-input bg-muted/30 touch-none cursor-crosshair"
@@ -344,8 +367,14 @@ const SectionEntityComponent = createEntityComponent(sectionEntity, (props) => {
   return (
     <div className="space-y-3 rounded-lg border-l-2 border-primary/30 bg-muted/20 p-3">
       <div className="flex items-center gap-2 text-sm font-medium text-primary/70">
-        <Layers className="h-4 w-4" />
-        <Label className="text-sm font-medium cursor-pointer">{props.entity.attributes.label}</Label>
+        <Layers className="h-4 w-4 shrink-0" />
+        <FieldHeader
+          entityId={props.entity.id}
+          label={props.entity.attributes.label as string}
+          required={false}
+          builderStore={props.builderStore}
+          className="flex-1 min-w-0"
+        />
       </div>
       <div
         ref={setNodeRef}
@@ -373,9 +402,15 @@ const RepeatingEntityComponent = createEntityComponent(repeatingEntity, (props) 
   return (
     <div className="space-y-3 rounded-lg border-l-2 border-amber-400/40 bg-muted/20 p-3">
       <div className="flex items-center gap-2 text-sm font-medium text-amber-600/70">
-        <Repeat className="h-4 w-4" />
-        <Label className="text-sm font-medium cursor-pointer">{props.entity.attributes.label}</Label>
-        <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-mono ml-auto">
+        <Repeat className="h-4 w-4 shrink-0" />
+        <FieldHeader
+          entityId={props.entity.id}
+          label={props.entity.attributes.label as string}
+          required={false}
+          builderStore={props.builderStore}
+          className="flex-1 min-w-0"
+        />
+        <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-mono shrink-0">
           {rowCount} row{rowCount !== 1 ? "s" : ""}
         </Badge>
       </div>
@@ -418,9 +453,15 @@ const RepeatingEntityComponent = createEntityComponent(repeatingEntity, (props) 
 const ComputedFieldEntity = createEntityComponent(computedFieldEntity, (props) => (
   <div className="space-y-1.5">
     <div className="flex items-center gap-2">
-      <FunctionSquare className="h-4 w-4 text-muted-foreground" />
-      <Label className="text-sm font-medium text-muted-foreground">{props.entity.attributes.label}</Label>
-      <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-mono">auto</Badge>
+      <FunctionSquare className="h-4 w-4 text-muted-foreground shrink-0" />
+      <FieldHeader
+        entityId={props.entity.id}
+        label={props.entity.attributes.label as string}
+        required={false}
+        builderStore={props.builderStore}
+        className="flex-1 min-w-0"
+      />
+      <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-mono shrink-0">auto</Badge>
     </div>
     <div className="flex items-center gap-1.5 rounded-md border border-input bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
       <span className="italic">computed: {props.entity.attributes.formula}</span>
