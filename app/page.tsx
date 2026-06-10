@@ -53,6 +53,7 @@ function BuildPage({ hideHeader = false }: { hideHeader?: boolean }) {
   const paletteRef = useRef<{ focusSearch: () => void } | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [allowedFieldTypes, setAllowedFieldTypes] = useState<string[] | undefined>(undefined);
+  const saveFormRef = useRef(() => {});
 
   const {
     builderStore,
@@ -107,7 +108,7 @@ function BuildPage({ hideHeader = false }: { hideHeader?: boolean }) {
       (origin) => {
         toast.error(`Rejected message from untrusted origin: ${origin}`);
       },
-      handleSave,
+      () => saveFormRef.current(),
     );
     bridgeRef.current = bridge;
 
@@ -149,6 +150,7 @@ function BuildPage({ hideHeader = false }: { hideHeader?: boolean }) {
         toast.error("Form saved locally, but no host is connected to receive it. Use Export to download JSON.");
       }
     };
+    saveFormRef.current = saveForm;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
@@ -298,19 +300,6 @@ function BuildPage({ hideHeader = false }: { hideHeader?: boolean }) {
     downloadJson(full);
   }, [builderStore, title]);
 
-  const handleSave = useCallback(() => {
-    const schema = builderStore.getSchema();
-    const payload = serialize(schema);
-    const full: FormPayload = { title: titleRef.current, ...payload };
-    const sent = bridgeRef.current?.emitSaved(full) ?? false;
-    if (sent) {
-      setIsDirty(false);
-      toast.success("Form saved");
-    } else {
-      toast.error("Form saved locally, but no host is connected to receive it. Use Export to download JSON.");
-    }
-  }, [builderStore]);
-
   const handleClear = useCallback(() => {
     if (builderStore.getSchema().root.length === 0) {
       toast.info("Form is already empty");
@@ -334,7 +323,7 @@ function BuildPage({ hideHeader = false }: { hideHeader?: boolean }) {
           mode={mode}
           onModeChange={setMode}
           onExport={handleExport}
-          onSave={handleSave}
+          onSave={() => saveFormRef.current()}
           onClear={handleClear}
           isDirty={isDirty}
           canUndo={canUndo}

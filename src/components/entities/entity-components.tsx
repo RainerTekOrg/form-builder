@@ -28,8 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import { Upload, PenLine, Layers, Repeat, Plus, FunctionSquare, X } from "lucide-react";
+import { Upload, Layers, Repeat, Plus, FunctionSquare, X } from "lucide-react";
 import { FieldHeader } from "@/src/components/ui/field-header";
 
 const TextFieldEntity = createEntityComponent(textFieldEntity, (props) => (
@@ -38,7 +37,6 @@ const TextFieldEntity = createEntityComponent(textFieldEntity, (props) => (
       entityId={props.entity.id}
       label={props.entity.attributes.label as string}
       required={props.entity.attributes.required as boolean}
-      builderStore={props.builderStore}
     />
     <Input
       placeholder={props.entity.attributes.placeholder ?? ""}
@@ -57,7 +55,6 @@ const TextareaFieldEntity = createEntityComponent(textareaFieldEntity, (props) =
       entityId={props.entity.id}
       label={props.entity.attributes.label as string}
       required={props.entity.attributes.required as boolean}
-      builderStore={props.builderStore}
     />
     <Textarea
       placeholder={props.entity.attributes.placeholder ?? ""}
@@ -76,7 +73,6 @@ const NumberFieldEntity = createEntityComponent(numberFieldEntity, (props) => (
       entityId={props.entity.id}
       label={props.entity.attributes.label as string}
       required={props.entity.attributes.required as boolean}
-      builderStore={props.builderStore}
     />
     <div className="flex items-center gap-1.5">
       <Input
@@ -103,7 +99,6 @@ const IntegerFieldEntity = createEntityComponent(integerFieldEntity, (props) => 
       entityId={props.entity.id}
       label={props.entity.attributes.label as string}
       required={props.entity.attributes.required as boolean}
-      builderStore={props.builderStore}
     />
     <div className="flex items-center gap-1.5">
       <Input
@@ -129,7 +124,6 @@ const SelectFieldEntity = createEntityComponent(selectFieldEntity, (props) => (
       entityId={props.entity.id}
       label={props.entity.attributes.label as string}
       required={props.entity.attributes.required as boolean}
-      builderStore={props.builderStore}
     />
     <Select disabled>
       <SelectTrigger className="bg-muted/50">
@@ -153,7 +147,6 @@ const MultiSelectFieldEntity = createEntityComponent(multiSelectFieldEntity, (pr
       entityId={props.entity.id}
       label={props.entity.attributes.label as string}
       required={props.entity.attributes.required as boolean}
-      builderStore={props.builderStore}
     />
     <div className="flex min-h-9 flex-wrap gap-1 rounded-md border border-input bg-muted/50 px-3 py-2">
       {props.entity.attributes.options?.slice(0, 3).map((opt: { value: string; label: string }) => (
@@ -183,8 +176,7 @@ const BooleanFieldEntity = createEntityComponent(booleanFieldEntity, (props) => 
           entityId={props.entity.id}
           label={props.entity.attributes.label as string}
           required={props.entity.attributes.required as boolean}
-          builderStore={props.builderStore}
-        />
+            />
       </div>
     </div>
     {props.entity.attributes.helpText && (
@@ -199,7 +191,6 @@ const DateFieldEntity = createEntityComponent(dateFieldEntity, (props) => (
       entityId={props.entity.id}
       label={props.entity.attributes.label as string}
       required={props.entity.attributes.required as boolean}
-      builderStore={props.builderStore}
     />
     <Input type="date" disabled className="bg-muted/50" />
     {props.entity.attributes.helpText && (
@@ -214,7 +205,6 @@ const DatetimeFieldEntity = createEntityComponent(datetimeFieldEntity, (props) =
       entityId={props.entity.id}
       label={props.entity.attributes.label as string}
       required={props.entity.attributes.required as boolean}
-      builderStore={props.builderStore}
     />
     <Input type="datetime-local" disabled className="bg-muted/50" />
     {props.entity.attributes.helpText && (
@@ -233,8 +223,7 @@ const FileFieldEntity = createEntityComponent(fileFieldEntity, (props) => {
         entityId={props.entity.id}
         label={props.entity.attributes.label as string}
         required={props.entity.attributes.required as boolean}
-        builderStore={props.builderStore}
-      />
+        />
       <div
         className="flex items-center gap-2 rounded-md border border-dashed border-input bg-muted/30 px-3 py-4 text-sm text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors"
         onClick={() => fileRef.current?.click()}
@@ -336,8 +325,7 @@ const SignatureFieldEntity = createEntityComponent(signatureFieldEntity, (props)
         entityId={props.entity.id}
         label={props.entity.attributes.label as string}
         required={props.entity.attributes.required as boolean}
-        builderStore={props.builderStore}
-      />
+        />
       <canvas
         ref={canvasRef}
         className="w-full h-24 rounded-md border border-dashed border-input bg-muted/30 touch-none cursor-crosshair"
@@ -372,7 +360,7 @@ const SectionEntityComponent = createEntityComponent(sectionEntity, (props) => {
           entityId={props.entity.id}
           label={props.entity.attributes.label as string}
           required={false}
-          builderStore={props.builderStore}
+          hideRequired
           className="flex-1 min-w-0"
         />
       </div>
@@ -407,7 +395,7 @@ const RepeatingEntityComponent = createEntityComponent(repeatingEntity, (props) 
           entityId={props.entity.id}
           label={props.entity.attributes.label as string}
           required={false}
-          builderStore={props.builderStore}
+          hideRequired
           className="flex-1 min-w-0"
         />
         <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-mono shrink-0">
@@ -458,7 +446,7 @@ const ComputedFieldEntity = createEntityComponent(computedFieldEntity, (props) =
         entityId={props.entity.id}
         label={props.entity.attributes.label as string}
         required={false}
-        builderStore={props.builderStore}
+        hideRequired
         className="flex-1 min-w-0"
       />
       <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-mono shrink-0">auto</Badge>

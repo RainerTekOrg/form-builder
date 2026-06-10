@@ -17,7 +17,7 @@ export const computedFieldEntity = createEntity({
     formulaAttribute,
     fieldWidthAttribute,
   ],
-  shouldBeProcessed(context) {
+  shouldBeProcessed() {
     return false;
   },
   validate(value) {

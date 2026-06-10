@@ -1,7 +1,7 @@
 "use client";
 
 import { createAttributeComponent } from "@coltorapps/builder-react";
-import { optionsAttribute, optionItemSchema } from "@/src/builder/attributes/options";
+import { optionsAttribute } from "@/src/builder/attributes/options";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";

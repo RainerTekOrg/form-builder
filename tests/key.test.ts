@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { generateKey, namespaceKey, flattenKeys, KEY_REGEX } from "@/src/serializer/key";
-import type { Schema } from "@coltorapps/builder";
 
 describe("generateKey", () => {
   it("slugifies a simple label", () => {

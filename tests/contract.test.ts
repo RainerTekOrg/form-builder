@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { exampleForm } from "@/src/contract/example";
 import { fieldTypeMetaMap, fieldTypes } from "@/src/contract/field-types";
-import type { FormPayload, JsonSchema, UiSchema, InboundMessage, OutboundMessage } from "@/src/contract/types";
+import type { FormPayload, InboundMessage, OutboundMessage } from "@/src/contract/types";
 
 describe("contract types", () => {
   it("example form compiles and round-trips JSON", () => {

@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import type { BuilderStore } from "@coltorapps/builder";
-import { formBuilder } from "@/src/builder/form-builder";
+import { useBuilderStoreCtx } from "@/src/components/canvas/builder-store-context";
 
 interface FieldHeaderProps {
   entityId: string;
   label: string;
   required: boolean;
-  builderStore: BuilderStore<typeof formBuilder>;
+  /** When true, the required toggle star is hidden (for section/repeating/computed). */
+  hideRequired?: boolean;
   className?: string;
 }
 
@@ -16,16 +16,13 @@ export function FieldHeader({
   entityId,
   label,
   required,
-  builderStore,
+  hideRequired = false,
   className = "",
 }: FieldHeaderProps) {
+  const builderStore = useBuilderStoreCtx();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(label);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setDraft(label);
-  }, [label]);
 
   useEffect(() => {
     if (editing && inputRef.current) {
@@ -97,17 +94,19 @@ export function FieldHeader({
           {label}
         </span>
       )}
-      <button
-        type="button"
-        onClick={toggleRequired}
-        className="shrink-0 text-sm px-1 rounded hover:bg-muted transition-colors leading-none"
-        title={required ? "Mark as optional" : "Mark as required"}
-        aria-label={required ? "Remove required" : "Mark as required"}
-      >
-        <span className={required ? "text-destructive" : "text-muted-foreground/40"}>
-          {required ? "\u2605" : "\u2606"}
-        </span>
-      </button>
+      {!hideRequired && (
+        <button
+          type="button"
+          onClick={toggleRequired}
+          className="shrink-0 text-sm px-1 rounded hover:bg-muted transition-colors leading-none"
+          title={required ? "Mark as optional" : "Mark as required"}
+          aria-label={required ? "Remove required" : "Mark as required"}
+        >
+          <span className={required ? "text-destructive" : "text-muted-foreground/40"}>
+            {required ? "\u2605" : "\u2606"}
+          </span>
+        </button>
+      )}
     </div>
   );
 }

@@ -68,7 +68,7 @@ describe("serializer round-trip", () => {
   });
 
   it("serializes a form that can be deserialized back to the same structure", () => {
-    for (const { name, data } of fixtures) {
+    for (const { data } of fixtures) {
       const coltorappsSchema = deserialize(data);
       const serialized = serialize(coltorappsSchema);
 

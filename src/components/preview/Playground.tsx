@@ -4,14 +4,13 @@ import { useCallback, useEffect, useMemo } from "react";
 import { useInterpreterStore, InterpreterEntity } from "@coltorapps/builder-react";
 import type { BuilderStore, InterpreterStore, Schema } from "@coltorapps/builder";
 import { formBuilder } from "@/src/builder/form-builder";
-import type { FieldWidth, UiCondition } from "@/src/contract/types";
+import type { FieldWidth } from "@/src/contract/types";
 import { interactiveEntityComponents } from "./entity-components";
 import { useConditionalVisibility } from "./useConditionalVisibility";
 import FormValueContext from "./FormValueContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
 import { Eye, RotateCcw } from "lucide-react";
 
 interface PlaygroundProps {

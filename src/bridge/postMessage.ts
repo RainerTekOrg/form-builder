@@ -76,14 +76,6 @@ function isOriginAllowed(origin: string): boolean {
   return ALLOWED_ORIGINS.some((allowed) => matchOrigin(origin, allowed));
 }
 
-function resolveEmitTarget(): string {
-  if (parentOrigin) return parentOrigin;
-  if (ALLOWED_ORIGINS.length > 0 && !ALLOWED_ORIGINS.some(hasWildcard)) {
-    return ALLOWED_ORIGINS[0];
-  }
-  return "*";
-}
-
 export function createBridge(
   onLoadForm: LoadFormHandler,
   onLoadGroup: LoadGroupHandler,
@@ -93,6 +85,14 @@ export function createBridge(
   onTriggerSave?: TriggerSaveHandler,
 ): Bridge {
   let parentOrigin: string | null = null;
+
+  function resolveEmitTarget(): string {
+    if (parentOrigin) return parentOrigin;
+    if (ALLOWED_ORIGINS.length > 0 && !ALLOWED_ORIGINS.some(hasWildcard)) {
+      return ALLOWED_ORIGINS[0];
+    }
+    return "*";
+  }
 
   function handleMessage(event: MessageEvent) {
     if (!isOriginAllowed(event.origin)) {

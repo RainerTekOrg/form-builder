@@ -16,6 +16,7 @@ import type { BuilderStore } from "@coltorapps/builder";
 import { formBuilder } from "@/src/builder/form-builder";
 import { DndItem } from "./DndItem";
 import { entityComponents } from "@/src/components/entities/entity-components";
+import { BuilderStoreProvider } from "./builder-store-context";
 import { Plus, Type, AlignLeft, Hash, List, CheckSquare, Calendar, FileUp, Pen, Layers, Repeat, FunctionSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
@@ -116,6 +117,7 @@ export function FormBuilder({
   const entityIds = hasEntities ? [...schema.root] : [];
 
   return (
+    <BuilderStoreProvider store={builderStore}>
     <main className="flex h-full flex-col overflow-hidden">
       <div className="flex items-center justify-between border-b px-4 py-2 shrink-0">
         <h2 className="text-sm font-semibold">Canvas</h2>
@@ -186,5 +188,6 @@ export function FormBuilder({
         </DndContext>
       </div>
     </main>
+    </BuilderStoreProvider>
   );
 }
