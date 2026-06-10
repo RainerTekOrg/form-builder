@@ -69,7 +69,19 @@ function BuildPage({ hideHeader = false }: { hideHeader?: boolean }) {
 
   const { undo, redo, canUndo, canRedo } = useBuilderHistory();
 
-  // Bridge lifecycle
+  // Refs for values that change without needing bridge recreation
+  const selectedEntityIdRef = useRef(selectedEntityId);
+  selectedEntityIdRef.current = selectedEntityId;
+  const deleteEntityRef = useRef<(id: string) => void>(deleteEntity);
+  deleteEntityRef.current = deleteEntity;
+  const undoRef = useRef(undo);
+  undoRef.current = undo;
+  const redoRef = useRef(redo);
+  redoRef.current = redo;
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+
+  // Bridge lifecycle — runs once on mount, never recreated
   useEffect(() => {
     const bridge = createBridge(
       (payload: FormPayload) => {
@@ -156,41 +168,44 @@ function BuildPage({ hideHeader = false }: { hideHeader?: boolean }) {
       const target = e.target as HTMLElement;
       if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT") return;
 
+      const id = selectedEntityIdRef.current;
+      const del = deleteEntityRef.current;
+
       if (e.key === "Delete" || e.key === "Backspace") {
-        if (selectedEntityId) {
+        if (id) {
           e.preventDefault();
-          deleteEntity(selectedEntityId);
+          del(id);
         }
       }
 
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
         e.preventDefault();
-        saveForm();
+        saveFormRef.current();
       }
 
       if ((e.metaKey || e.ctrlKey) && (e.key === "z" || e.key === "Z")) {
         e.preventDefault();
         if (e.shiftKey) {
-          redo();
+          redoRef.current();
         } else {
-          undo();
+          undoRef.current();
         }
       }
 
       if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-        if (!selectedEntityId) return;
+        if (!id) return;
         e.preventDefault();
         const current = builderStore.getSchema().root;
-        const idx = current.indexOf(selectedEntityId);
+        const idx = current.indexOf(id);
         if (idx === -1) return;
         const dir = e.key === "ArrowUp" ? -1 : 1;
         const newIdx = Math.max(0, Math.min(current.length - 1, idx + dir));
         if (newIdx !== idx) {
-          moveEntity(selectedEntityId, newIdx);
+          builderStore.setEntityIndex(id, newIdx);
         }
       }
 
-      if (e.key === "/" && mode === "build") {
+      if (e.key === "/" && modeRef.current === "build") {
         e.preventDefault();
         paletteRef.current?.focusSearch();
       }
@@ -204,7 +219,7 @@ function BuildPage({ hideHeader = false }: { hideHeader?: boolean }) {
       window.removeEventListener("keydown", handleKeyDown);
       bridgeRef.current = null;
     };
-  }, [builderStore, deleteEntity, moveEntity, selectedEntityId, undo, redo, mode]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
