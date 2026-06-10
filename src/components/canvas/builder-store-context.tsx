@@ -6,12 +6,8 @@ import { formBuilder } from "@/src/builder/form-builder";
 
 const BuilderStoreContext = createContext<BuilderStore<typeof formBuilder> | null>(null);
 
-export function useBuilderStoreCtx(): BuilderStore<typeof formBuilder> {
-  const store = useContext(BuilderStoreContext);
-  if (!store) {
-    throw new Error("useBuilderStoreCtx must be used within a BuilderStoreProvider");
-  }
-  return store;
+export function useBuilderStoreCtx(): BuilderStore<typeof formBuilder> | null {
+  return useContext(BuilderStoreContext);
 }
 
 export function BuilderStoreProvider({

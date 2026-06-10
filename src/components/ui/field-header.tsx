@@ -34,7 +34,7 @@ export function FieldHeader({
   const commit = useCallback(() => {
     const trimmed = draft.trim();
     if (trimmed && trimmed !== label) {
-      builderStore.setEntityAttribute(entityId, "label", trimmed);
+      builderStore?.setEntityAttribute(entityId, "label", trimmed);
     }
     setEditing(false);
   }, [draft, label, entityId, builderStore]);
@@ -68,10 +68,12 @@ export function FieldHeader({
   const toggleRequired = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      builderStore.setEntityAttribute(entityId, "required", !required);
+      builderStore?.setEntityAttribute(entityId, "required", !required);
     },
     [entityId, required, builderStore],
   );
+
+  const storeAvailable = builderStore != null;
 
   return (
     <div className={`flex items-center justify-between gap-1 ${className}`}>
@@ -87,14 +89,14 @@ export function FieldHeader({
         />
       ) : (
         <span
-          onClick={handleLabelClick}
-          className="text-sm font-medium cursor-text hover:bg-muted/50 rounded px-1 -mx-1 truncate"
-          title="Click to edit label"
+          onClick={storeAvailable ? handleLabelClick : undefined}
+          className="text-sm font-medium truncate"
+          title={storeAvailable ? "Click to edit label" : undefined}
         >
           {label}
         </span>
       )}
-      {!hideRequired && (
+      {!hideRequired && storeAvailable && (
         <button
           type="button"
           onClick={toggleRequired}

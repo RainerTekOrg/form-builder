@@ -149,14 +149,16 @@ export function FormBuilder({
                   components={entityComponents}
                 >
                   {({ entity, children }) => (
-                    <DndItem
-                      entityId={entity.id}
-                      isSelected={entity.id === selectedEntityId}
-                      onSelect={() => onSelectEntity(entity.id)}
-                      onDelete={() => onDeleteEntity(entity.id)}
-                    >
-                      {children}
-                    </DndItem>
+                    <BuilderStoreProvider store={builderStore}>
+                      <DndItem
+                        entityId={entity.id}
+                        isSelected={entity.id === selectedEntityId}
+                        onSelect={() => onSelectEntity(entity.id)}
+                        onDelete={() => onDeleteEntity(entity.id)}
+                      >
+                        {children}
+                      </DndItem>
+                    </BuilderStoreProvider>
                   )}
                 </BuilderEntities>
               </SortableContext>

@@ -7,7 +7,10 @@ import type {
   OutboundMessage,
 } from "@/src/contract/types";
 
-const ALLOWED_ORIGINS = (process.env.NEXT_PUBLIC_ALLOWED_ORIGINS ?? "").split(",").filter(Boolean);
+const ALLOWED_ORIGINS = (process.env.NEXT_PUBLIC_ALLOWED_ORIGINS ?? "")
+  .split(/[\s,]+/)
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 let emitReadyWarned = false;
 
@@ -64,7 +67,7 @@ function matchOrigin(origin: string, pattern: string): boolean {
 
     if (pattern === "*") return true;
 
-    const re = new RegExp(`^${pattern.replace(/\*/g, ".*").replace(/[.+?^${}()|[\]\\]/g, "\\$&")}$`);
+    const re = new RegExp(`^${pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*")}$`);
     return re.test(origin);
   } catch {
     return false;
@@ -126,7 +129,7 @@ export function createBridge(
 
   function emitSaved(payload: FormPayload): boolean {
     if (!parentOrigin) {
-      console.warn("[bridge] No parent origin captured yet; cannot emitSaved. Did the host send a message first?");
+      console.warn("[bridge] No parent origin captured yet; cannot emitSaved (standalone mode)");
       return false;
     }
     const message: OutboundMessage = { type: "FORM_SAVED", payload };
@@ -136,7 +139,7 @@ export function createBridge(
 
   function emitFilled(payload: FilledPayload): boolean {
     if (!parentOrigin) {
-      console.warn("[bridge] No parent origin captured yet; cannot emitFilled.");
+      console.warn("[bridge] No parent origin captured yet; cannot emitFilled (standalone mode)");
       return false;
     }
     const message: OutboundMessage = { type: "FORM_FILLED", payload };
@@ -146,7 +149,6 @@ export function createBridge(
 
   function emitFillCancelled(): boolean {
     if (!parentOrigin) {
-      console.warn("[bridge] No parent origin captured yet; cannot emitFillCancelled.");
       return false;
     }
     const message: OutboundMessage = { type: "FILL_CANCELLED" };
@@ -156,7 +158,7 @@ export function createBridge(
 
   function emitError(code: string, message: string): boolean {
     if (!parentOrigin) {
-      console.warn(`[bridge] No parent origin captured yet; cannot emitError ${code}.`);
+      console.warn(`[bridge] No parent origin captured yet; cannot emitError ${code} (standalone mode)`);
       return false;
     }
     const msg: OutboundMessage = { type: "ERROR", code, message };
@@ -169,7 +171,11 @@ export function createBridge(
     const targetOrigin = resolveEmitTarget();
     if (targetOrigin === "*" && !emitReadyWarned && process.env.NODE_ENV !== "production") {
       emitReadyWarned = true;
-      console.warn("[bridge] emitReady falling back to '*' — no parent origin captured and no ALLOWED_ORIGINS configured");
+      if (ALLOWED_ORIGINS.length > 0) {
+        console.info("[bridge] emitReady sent to '*' because ALLOWED_ORIGINS contains wildcard patterns (standalone dev mode)");
+      } else {
+        console.warn("[bridge] emitReady sent to '*' — NEXT_PUBLIC_ALLOWED_ORIGINS not set (postMessage targetOrigin does not support wildcards)");
+      }
     }
     window.parent.postMessage(message, targetOrigin);
     return true;
@@ -177,7 +183,6 @@ export function createBridge(
 
   function emitDirtyState(isDirty: boolean): boolean {
     if (!parentOrigin) {
-      console.warn("[bridge] No parent origin captured yet; cannot emitDirtyState.");
       return false;
     }
     const message: OutboundMessage = { type: "DIRTY_STATE", payload: { isDirty } };
