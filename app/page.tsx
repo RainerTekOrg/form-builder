@@ -32,17 +32,17 @@ import type { GroupPayload, FormPayload } from "@/src/contract/types";
 export default function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string }>;
+  searchParams: Promise<{ mode?: string; embed?: string }>;
 }) {
   const params = use(searchParams);
   if (params?.mode === "fill") {
     return <FillPage />;
   }
 
-  return <BuildPage />;
+  return <BuildPage hideHeader={params?.embed === "1"} />;
 }
 
-function BuildPage() {
+function BuildPage({ hideHeader = false }: { hideHeader?: boolean }) {
   const [mode, setMode] = useState<"build" | "preview">("build");
   const [stagedGroups, setStagedGroups] = useState<Array<{ id: string; label: string; payload: GroupPayload }>>([]);
   const [title, setTitle] = useState("Untitled form");
@@ -105,6 +105,7 @@ function BuildPage() {
       (origin) => {
         toast.error(`Rejected message from untrusted origin: ${origin}`);
       },
+      handleSave,
     );
     bridgeRef.current = bridge;
 
@@ -326,20 +327,22 @@ function BuildPage() {
 
   return (
     <div className="flex h-dvh flex-col bg-background">
-      <Header
-        mode={mode}
-        onModeChange={setMode}
-        onExport={handleExport}
-        onSave={handleSave}
-        onClear={handleClear}
-        isDirty={isDirty}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onUndo={undo}
-        onRedo={redo}
-        title={title}
-        onTitleChange={setTitle}
-      />
+      {!hideHeader && (
+        <Header
+          mode={mode}
+          onModeChange={setMode}
+          onExport={handleExport}
+          onSave={handleSave}
+          onClear={handleClear}
+          isDirty={isDirty}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={undo}
+          onRedo={redo}
+          title={title}
+          onTitleChange={setTitle}
+        />
+      )}
 
       {mode === "build" ? (
         <div className="flex flex-1 overflow-hidden">

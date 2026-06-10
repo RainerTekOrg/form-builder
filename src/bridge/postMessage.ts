@@ -23,6 +23,7 @@ type LoadGroupHandler = (payload: GroupPayload) => void;
 type LoadFillHandler = (payload: FillPayload) => void;
 type SetConfigHandler = (payload: { allowedFieldTypes?: string[]; theme?: "light" | "dark" }) => void;
 type ForeignOriginHandler = (origin: string) => void;
+type TriggerSaveHandler = () => void;
 
 export interface Bridge {
   attach: () => () => void;
@@ -41,6 +42,7 @@ export function createBridge(
   onLoadFill?: LoadFillHandler,
   onSetConfig?: SetConfigHandler,
   onForeignOrigin?: ForeignOriginHandler,
+  onTriggerSave?: TriggerSaveHandler,
 ): Bridge {
   let parentOrigin: string | null = null;
 
@@ -67,6 +69,9 @@ export function createBridge(
         break;
       case "SET_CONFIG":
         onSetConfig?.(data.payload);
+        break;
+      case "TRIGGER_SAVE":
+        onTriggerSave?.();
         break;
     }
   }

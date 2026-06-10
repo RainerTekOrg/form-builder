@@ -92,7 +92,8 @@ export type InboundMessage =
   | { type: "LOAD_FORM"; payload: FormPayload }
   | { type: "LOAD_GROUP"; payload: GroupPayload }
   | { type: "LOAD_FILL"; payload: FillPayload }
-  | { type: "SET_CONFIG"; payload: { allowedFieldTypes?: string[]; theme?: "light" | "dark" } };
+  | { type: "SET_CONFIG"; payload: { allowedFieldTypes?: string[]; theme?: "light" | "dark" } }
+  | { type: "TRIGGER_SAVE" };
 
 export type OutboundMessage =
   | { type: "FORM_SAVED"; payload: FormPayload }
