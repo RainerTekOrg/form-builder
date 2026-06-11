@@ -24,7 +24,7 @@ if (ALLOWED_ORIGINS.length === 0 && process.env.NODE_ENV === "production") {
 type LoadFormHandler = (payload: FormPayload) => void;
 type LoadGroupHandler = (payload: GroupPayload) => void;
 type LoadFillHandler = (payload: FillPayload) => void;
-type SetConfigHandler = (payload: { allowedFieldTypes?: string[]; theme?: "light" | "dark" }) => void;
+type SetConfigHandler = (payload: { allowedFieldTypes?: string[]; theme?: "light" | "dark"; mode?: "build" | "preview" }) => void;
 type ForeignOriginHandler = (origin: string) => void;
 type TriggerSaveHandler = () => void;
 

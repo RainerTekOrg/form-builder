@@ -118,6 +118,9 @@ function BuildPage({ hideHeader = false }: { hideHeader?: boolean }) {
         if (payload.allowedFieldTypes) {
           setAllowedFieldTypes(payload.allowedFieldTypes);
         }
+        if (payload.mode === "preview" || payload.mode === "build") {
+          setMode(payload.mode);
+        }
       },
       (origin) => {
         toast.error(`Rejected message from untrusted origin: ${origin}`);
