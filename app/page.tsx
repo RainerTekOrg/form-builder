@@ -53,6 +53,7 @@ function BuildPage({ hideHeader = false }: { hideHeader?: boolean }) {
   const paletteRef = useRef<{ focusSearch: () => void } | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [allowedFieldTypes, setAllowedFieldTypes] = useState<string[] | undefined>(undefined);
+  const [_, forceRender] = useState(0);
   const saveFormRef = useRef(() => {});
 
   const {
@@ -94,6 +95,7 @@ function BuildPage({ hideHeader = false }: { hideHeader?: boolean }) {
           });
           if (payload.title) setTitle(payload.title);
           setIsDirty(false);
+          forceRender((n) => n + 1);
           toast.success("Form loaded");
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
