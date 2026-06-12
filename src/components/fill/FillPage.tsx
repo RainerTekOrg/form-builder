@@ -197,7 +197,7 @@ export function FillPage() {
         onCancel={handleCancel}
         onSubmit={handleSubmit}
       />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden w-full">
         {!loaded ? (
           <div className="flex flex-1 items-center justify-center p-8">
             <div className="text-center max-w-xs">
