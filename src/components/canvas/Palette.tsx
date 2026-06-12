@@ -6,69 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Search,
-  Type,
-  AlignLeft,
-  Hash,
-  List,
-  CheckSquare,
-  Calendar,
-  FileUp,
-  Pen,
-  Layers,
-  Repeat,
-  FunctionSquare,
   Package,
 } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-
-const fieldTypeGroups = [
-  {
-    label: "Inputs",
-    items: [
-      { widget: "text", entity: "textField", label: "Text Field", icon: Type },
-      { widget: "textarea", entity: "textareaField", label: "Text Area", icon: AlignLeft },
-      { widget: "number", entity: "numberField", label: "Number", icon: Hash },
-      { widget: "integer", entity: "integerField", label: "Integer", icon: Hash },
-    ],
-  },
-  {
-    label: "Choice",
-    items: [
-      { widget: "select", entity: "selectField", label: "Select", icon: List },
-      { widget: "multiselect", entity: "multiSelectField", label: "Multi Select", icon: List },
-      { widget: "boolean", entity: "booleanField", label: "Checkbox", icon: CheckSquare },
-    ],
-  },
-  {
-    label: "Date / Time",
-    items: [
-      { widget: "date", entity: "dateField", label: "Date", icon: Calendar },
-      { widget: "datetime", entity: "datetimeField", label: "Date Time", icon: Calendar },
-    ],
-  },
-  {
-    label: "Media",
-    items: [
-      { widget: "file", entity: "fileField", label: "File Upload", icon: FileUp },
-      { widget: "signature", entity: "signatureField", label: "Signature", icon: Pen },
-    ],
-  },
-  {
-    label: "Layout",
-    items: [
-      { widget: "section", entity: "section", label: "Section", icon: Layers },
-      { widget: "repeating", entity: "repeating", label: "Repeating", icon: Repeat },
-    ],
-  },
-  {
-    label: "Special",
-    items: [
-      { widget: "computed", entity: "computedField", label: "Computed", icon: FunctionSquare },
-    ],
-  },
-];
+import { fieldTypeGroups } from "@/src/contract/field-groups";
 
 function PaletteItem({
   widget,

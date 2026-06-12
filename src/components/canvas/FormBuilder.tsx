@@ -17,6 +17,8 @@ import { formBuilder } from "@/src/builder/form-builder";
 import { DndItem } from "./DndItem";
 import { entityComponents } from "@/src/components/entities/entity-components";
 import { BuilderStoreProvider } from "./builder-store-context";
+import { AddFieldProvider } from "./add-field-context";
+import { AddFieldDropdown } from "./AddFieldDropdown";
 import { Plus, Type, AlignLeft, Hash, List, CheckSquare, Calendar, FileUp, Pen, Layers, Repeat, FunctionSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
@@ -86,6 +88,8 @@ interface FormBuilderProps {
   onSelectEntity: (id: string | null) => void;
   onDeleteEntity: (id: string) => void;
   onDragEnd: (event: DragEndEvent) => void;
+  onAddField: (parentId: string | null, entityName: string, label: string) => void;
+  allowedFieldTypes?: string[];
 }
 
 export function FormBuilder({
@@ -94,6 +98,8 @@ export function FormBuilder({
   onSelectEntity,
   onDeleteEntity,
   onDragEnd,
+  onAddField,
+  allowedFieldTypes,
 }: FormBuilderProps) {
   const schema = builderStore.getSchema();
   const hasEntities = schema.root.length > 0;
@@ -118,6 +124,7 @@ export function FormBuilder({
 
   return (
     <BuilderStoreProvider store={builderStore}>
+    <AddFieldProvider onAddField={onAddField} allowedFieldTypes={allowedFieldTypes}>
     <main className="flex h-full flex-col overflow-hidden">
       <div className="flex items-center justify-between border-b px-4 py-2 shrink-0">
         <h2 className="text-sm font-semibold">Canvas</h2>
@@ -162,6 +169,14 @@ export function FormBuilder({
                   )}
                 </BuilderEntities>
               </SortableContext>
+              <div className="flex justify-center pt-2">
+                <AddFieldDropdown
+                  parentId={null}
+                  variant="secondary"
+                  size="sm"
+                  label="Add field"
+                />
+              </div>
             </div>
           ) : (
             <div className="max-w-2xl mx-auto h-full">
@@ -190,6 +205,7 @@ export function FormBuilder({
         </DndContext>
       </div>
     </main>
+    </AddFieldProvider>
     </BuilderStoreProvider>
   );
 }

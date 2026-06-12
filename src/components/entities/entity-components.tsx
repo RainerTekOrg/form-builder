@@ -17,6 +17,7 @@ import { sectionEntity } from "@/src/builder/entities/section-entity";
 import { repeatingEntity } from "@/src/builder/entities/repeating-entity";
 import { computedFieldEntity } from "@/src/builder/entities/computed-field-entity";
 import { useRef, useState, useEffect } from "react";
+import { AddFieldDropdown } from "@/src/components/canvas/AddFieldDropdown";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -378,6 +379,14 @@ const SectionEntityComponent = createEntityComponent(sectionEntity, (props) => {
           </p>
         )}
       </div>
+      <div className="flex items-center gap-2 pl-4">
+        <AddFieldDropdown
+          parentId={props.entity.id}
+          variant="ghost"
+          size="sm"
+          label="Add field"
+        />
+      </div>
     </div>
   );
 });
@@ -417,6 +426,12 @@ const RepeatingEntityComponent = createEntityComponent(repeatingEntity, (props) 
         )}
       </div>
       <div className="flex items-center gap-2 pl-4">
+        <AddFieldDropdown
+          parentId={props.entity.id}
+          variant="ghost"
+          size="sm"
+          label="Add field"
+        />
         <button
           type="button"
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"

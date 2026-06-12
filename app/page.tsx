@@ -226,6 +226,20 @@ function BuildPage({ hideHeader = false }: { hideHeader?: boolean }) {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const addFieldToParent = useCallback(
+    (parentId: string | null, entityName: string, label: string) => {
+      const entity = addEntity(entityName, { label });
+      if (parentId && entity) {
+        builderStore.setEntityParent(entity.id, parentId);
+      }
+      const collision = detectCollision(label);
+      if (collision) {
+        toast.info(`Key renamed to avoid collision with "${collision.originalKey}"`);
+      }
+    },
+    [addEntity, detectCollision, builderStore],
+  );
+
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
@@ -242,14 +256,7 @@ function BuildPage({ hideHeader = false }: { hideHeader?: boolean }) {
 
         if (overId.startsWith("container-")) {
           const containerId = overId.replace("container-", "");
-          const existingKeys = flattenKeys(builderStore.getSchema());
-          const key = generateKey(label, new Set(existingKeys));
-          const added = builderStore.addEntity({
-            type: entityName as Parameters<typeof builderStore.addEntity>[0]["type"],
-            attributes: { label, key } as never,
-          } as never);
-          builderStore.setEntityParent(added.id, containerId);
-          setSelectedEntityId(added.id);
+          addFieldToParent(containerId, entityName, label);
           return;
         }
         addEntity(entityName, { label });
@@ -277,7 +284,7 @@ function BuildPage({ hideHeader = false }: { hideHeader?: boolean }) {
         }
       }
     },
-    [addEntity, detectCollision, moveEntity, builderStore, setSelectedEntityId],
+    [addEntity, addFieldToParent, detectCollision, moveEntity, builderStore],
   );
 
   const handleFieldAdd = useCallback(
@@ -367,6 +374,8 @@ function BuildPage({ hideHeader = false }: { hideHeader?: boolean }) {
               onSelectEntity={setSelectedEntityId}
               onDeleteEntity={deleteEntity}
               onDragEnd={handleDragEnd}
+              onAddField={addFieldToParent}
+              allowedFieldTypes={allowedFieldTypes}
             />
           </div>
           <div className="w-80 shrink-0 hidden lg:block">

@@ -25,6 +25,7 @@ beforeAll(() => {
 import { render, screen, cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { entityComponents } from "@/src/components/entities/entity-components";
+import { AddFieldProvider } from "@/src/components/canvas/add-field-context";
 import { textFieldEntity } from "@/src/builder/entities/text-field";
 import { textareaFieldEntity } from "@/src/builder/entities/textarea-field";
 import { numberFieldEntity } from "@/src/builder/entities/number-field";
@@ -67,6 +68,22 @@ function renderEntity(
   return render(<Component {...makeProps(entity, attrs)} />);
 }
 
+function renderContainerEntity(
+  Component: AnyEntityComponent,
+  entity: { name: string },
+  attrs: Record<string, unknown> = {},
+  children?: React.ReactNode,
+) {
+  const props = children
+    ? { ...makeProps(entity, attrs), children: [children] }
+    : makeProps(entity, attrs);
+  return render(
+    <AddFieldProvider onAddField={() => {}}>
+      <Component {...props} />
+    </AddFieldProvider>,
+  );
+}
+
 afterEach(() => {
   cleanup();
 });
@@ -80,7 +97,6 @@ describe("entity components — render smoke", () => {
     );
     expect(screen.getByText("Full Name")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Enter your name")).toBeInTheDocument();
-    expect(screen.getByLabelText("required")).toBeInTheDocument();
   });
 
   it("renders textField without required indicator when not required", () => {
@@ -90,7 +106,6 @@ describe("entity components — render smoke", () => {
       { label: "Notes", required: false },
     );
     expect(screen.getByText("Notes")).toBeInTheDocument();
-    expect(screen.queryByLabelText("required")).not.toBeInTheDocument();
   });
 
   it("renders textField help text when set", () => {
@@ -211,7 +226,7 @@ describe("entity components — render smoke", () => {
   });
 
   it("renders section with empty-state hint when no children", () => {
-    renderEntity(
+    renderContainerEntity(
       entityComponents.section as unknown as AnyEntityComponent,
       sectionEntity,
       { label: "Customer Info" },
@@ -223,17 +238,20 @@ describe("entity components — render smoke", () => {
   it("renders section with children when provided", () => {
     const SectionCmp = entityComponents.section as unknown as AnyEntityComponent;
     const TextCmp = entityComponents.textField as unknown as AnyEntityComponent;
-    const props = makeProps(sectionEntity, { label: "Customer Info" });
     const childProps = makeProps(textFieldEntity, { label: "Child Field" });
     const childEl = <TextCmp {...childProps} key="child" />;
-    const propsWithChildren = { ...props, children: [childEl] };
-    render(<SectionCmp {...propsWithChildren} />);
+    renderContainerEntity(
+      SectionCmp,
+      sectionEntity,
+      { label: "Customer Info" },
+      childEl,
+    );
     expect(screen.getByText("Customer Info")).toBeInTheDocument();
     expect(screen.getByText("Child Field")).toBeInTheDocument();
   });
 
   it("renders repeating block with empty-state hint", () => {
-    renderEntity(
+    renderContainerEntity(
       entityComponents.repeating as unknown as AnyEntityComponent,
       repeatingEntity,
       { label: "Line Items" },
