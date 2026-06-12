@@ -202,19 +202,20 @@ export function Playground({
           </div>
         ) : (
           <FormValueContext.Provider value={formValueContext}>
-            <div className="max-w-3xl mx-auto p-4 md:p-6">
-              <div className="bg-card rounded-xl border border-border shadow-sm p-4 md:p-6 space-y-5">
+            <div className="flex justify-center p-4 md:p-8">
+              <div className="w-full max-w-4xl bg-card rounded-xl border border-border shadow-sm p-5 md:p-8 space-y-6">
                 {fieldGroups.map((group, i) => {
                   if (Array.isArray(group)) {
                     const visible = group.filter((e) => visibility[e.entityId] !== false);
                     if (visible.length === 0) return null;
+                    const singleInRow = visible.length === 1;
                     return (
                       <div
                         key={i}
-                        className="grid gap-4 sm:grid-cols-2"
+                        className="grid gap-5 sm:grid-cols-2"
                       >
                         {visible.map((entry) => (
-                          <div key={entry.entityId}>
+                          <div key={entry.entityId} className={singleInRow ? "sm:col-span-2" : ""}>
                             {renderField(entry.entityId)}
                           </div>
                         ))}
@@ -223,12 +224,11 @@ export function Playground({
                   }
                   if (visibility[group.entityId] === false) return null;
                   return (
-                    <div key={group.entityId} className="sm:col-span-2">
+                    <div key={group.entityId}>
                       {renderField(group.entityId)}
                     </div>
                   );
                 })}
-                <div className="h-2" />
               </div>
             </div>
           </FormValueContext.Provider>
