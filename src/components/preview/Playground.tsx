@@ -19,27 +19,53 @@ interface PlaygroundProps {
   onInterpreterReady?: (interpreter: InterpreterStore<typeof formBuilder>) => void;
 }
 
+type SchemaEntity = {
+  type: string;
+  attributes?: Record<string, unknown>;
+  children?: string[];
+};
+
 type FieldWidthEntry = {
   entityId: string;
   width: FieldWidth;
 };
 
-function getFieldWidth(entity: { attributes?: Record<string, unknown> } | undefined): FieldWidth {
-  return (entity?.attributes?.["fieldWidth"] as FieldWidth) ?? "full";
+const ENTITY_DEFAULT_WIDTH: Record<string, FieldWidth> = {
+  textField: "half",
+  numberField: "half",
+  integerField: "half",
+  selectField: "half",
+  multiSelectField: "half",
+  booleanField: "half",
+  dateField: "half",
+  datetimeField: "half",
+  textareaField: "full",
+  fileField: "full",
+  signatureField: "full",
+  section: "full",
+  repeating: "full",
+  computedField: "full",
+};
+
+function getFieldWidth(
+  entityType: string,
+  attributes?: Record<string, unknown>,
+): FieldWidth {
+  const explicit = attributes?.["fieldWidth"] as FieldWidth | undefined;
+  if (explicit) return explicit;
+  return ENTITY_DEFAULT_WIDTH[entityType] ?? "half";
 }
 
 function groupFieldsByWidth(
   root: readonly string[],
-  schema: Schema<typeof formBuilder>,
+  entities: Record<string, SchemaEntity>,
 ): (FieldWidthEntry | FieldWidthEntry[])[] {
   const groups: (FieldWidthEntry | FieldWidthEntry[])[] = [];
   let currentRow: FieldWidthEntry[] = [];
 
   for (const entityId of root) {
-    const entity = (schema as unknown as {
-      entities: Record<string, { attributes?: Record<string, unknown> }>;
-    }).entities[entityId];
-    const width = getFieldWidth(entity);
+    const entity = entities[entityId];
+    const width = getFieldWidth(entity?.type ?? "", entity?.attributes);
 
     if (width === "full") {
       if (currentRow.length > 0) {
@@ -81,7 +107,6 @@ export function Playground({
   }, [interpreter]);
 
   const handleValidateAll = useCallback(() => {
-    const schema = builderStore.getSchema();
     const queue = [...schema.root];
     const seen = new Set<string>();
     while (queue.length > 0) {
@@ -117,10 +142,25 @@ export function Playground({
     };
   }, [allValues, builderStore]);
 
+  const rawEntities = (schema as unknown as {
+    entities: Record<string, SchemaEntity>;
+  }).entities;
+
   const fieldGroups = useMemo(
-    () => groupFieldsByWidth(schema.root, schema),
-    [schema],
+    () => groupFieldsByWidth(schema.root, rawEntities),
+    [schema, rawEntities],
   );
+
+  const renderField = (entityId: string) => (
+    <InterpreterEntity
+      key={entityId}
+      interpreterStore={interpreter}
+      entityId={entityId}
+      components={interactiveEntityComponents}
+    />
+  );
+
+  const totalFields = Object.keys(rawEntities).length;
 
   return (
     <main className="flex h-full flex-col overflow-hidden">
@@ -132,7 +172,7 @@ export function Playground({
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="text-xs font-mono">
-              {schema.root.length} field{schema.root.length !== 1 ? "s" : ""}
+              {totalFields} field{totalFields !== 1 ? "s" : ""}
             </Badge>
             {hasEntities && (
               <>
@@ -151,7 +191,7 @@ export function Playground({
 
       <ScrollArea className="flex-1 min-h-0">
         {!hasEntities ? (
-          <div className="flex h-full items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/20 p-8">
+          <div className="flex h-full items-center justify-center p-8">
             <div className="text-center max-w-xs">
               <Eye className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
               <h3 className="text-sm font-medium mb-1">Nothing to preview</h3>
@@ -162,52 +202,35 @@ export function Playground({
           </div>
         ) : (
           <FormValueContext.Provider value={formValueContext}>
-          <div className="max-w-2xl mx-auto p-4">
-            <div className="space-y-4">
-              {fieldGroups.map((group, i) => {
-                if (Array.isArray(group)) {
-                  const visible = group.filter((e) => visibility[e.entityId] !== false);
-                  if (visible.length === 0) return null;
-                  const totalCols = group.reduce((sum, entry) => {
-                    const c = entry.width === "full" ? 1 : entry.width === "half" ? 2 : entry.width === "two-thirds" ? 3 : 3;
-                    return Math.max(sum, c);
-                  }, 1);
-                  const maxCols = Math.min(totalCols, 3);
-                  return (
-                    <div
-                      key={i}
-                      className="grid gap-4"
-                      style={{ gridTemplateColumns: `repeat(${maxCols}, 1fr)` }}
-                    >
-                      {visible.map((entry) => {
-                        const colSpan = entry.width === "full" ? maxCols : entry.width === "half" ? Math.max(1, Math.floor(maxCols / 2)) : entry.width === "two-thirds" ? Math.max(1, Math.floor(maxCols * 2 / 3)) : maxCols;
-                        return (
-                          <div key={entry.entityId} style={{ gridColumn: `span ${colSpan}` }}>
-                            <InterpreterEntity
-                              interpreterStore={interpreter}
-                              entityId={entry.entityId}
-                              components={interactiveEntityComponents}
-                            />
+            <div className="max-w-3xl mx-auto p-4 md:p-6">
+              <div className="bg-card rounded-xl border border-border shadow-sm p-4 md:p-6 space-y-5">
+                {fieldGroups.map((group, i) => {
+                  if (Array.isArray(group)) {
+                    const visible = group.filter((e) => visibility[e.entityId] !== false);
+                    if (visible.length === 0) return null;
+                    return (
+                      <div
+                        key={i}
+                        className="grid gap-4 sm:grid-cols-2"
+                      >
+                        {visible.map((entry) => (
+                          <div key={entry.entityId}>
+                            {renderField(entry.entityId)}
                           </div>
-                        );
-                      })}
+                        ))}
+                      </div>
+                    );
+                  }
+                  if (visibility[group.entityId] === false) return null;
+                  return (
+                    <div key={group.entityId} className="sm:col-span-2">
+                      {renderField(group.entityId)}
                     </div>
                   );
-                }
-                if (visibility[group.entityId] === false) return null;
-                return (
-                  <div key={group.entityId}>
-                    <InterpreterEntity
-                      interpreterStore={interpreter}
-                      entityId={group.entityId}
-                      components={interactiveEntityComponents}
-                    />
-                  </div>
-                );
-              })}
+                })}
+                <div className="h-2" />
+              </div>
             </div>
-            <div className="h-4" />
-          </div>
           </FormValueContext.Provider>
         )}
       </ScrollArea>
