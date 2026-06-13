@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useBuilderStoreCtx } from "@/src/components/canvas/builder-store-context";
+import { generateKey, flattenKeys } from "@/src/serializer/key";
 
 interface FieldHeaderProps {
   entityId: string;
@@ -34,6 +35,18 @@ export function FieldHeader({
   const commit = useCallback(() => {
     const trimmed = draft.trim();
     if (trimmed && trimmed !== label) {
+      const entity = builderStore?.getEntity(entityId);
+      const currentKey = entity?.attributes?.key as string | undefined;
+      const oldAutoKey = generateKey(label, new Set());
+
+      if (currentKey && currentKey === oldAutoKey && builderStore) {
+        const schema = builderStore.getSchema();
+        const existingKeys = flattenKeys(schema);
+        existingKeys.delete(currentKey);
+        const newKey = generateKey(trimmed, existingKeys);
+        builderStore.setEntityAttribute(entityId, "key", newKey);
+      }
+
       builderStore?.setEntityAttribute(entityId, "label", trimmed);
     }
     setEditing(false);
