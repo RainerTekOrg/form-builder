@@ -101,4 +101,7 @@ export type OutboundMessage =
   | { type: "FILL_CANCELLED" }
   | { type: "ERROR"; code: string; message: string }
   | { type: "BUILDER_READY" }
-  | { type: "DIRTY_STATE"; payload: { isDirty: boolean } };
+  | { type: "DIRTY_STATE"; payload: { isDirty: boolean } }
+  // Emitted (debounced) in fill mode whenever entered values change, so the host
+  // can react to dependent fields (e.g. re-baking a dependent select's options).
+  | { type: "VALUES_CHANGED"; payload: { values: Record<string, unknown> } };

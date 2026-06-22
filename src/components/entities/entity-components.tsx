@@ -354,7 +354,12 @@ const SectionEntityComponent = createEntityComponent(sectionEntity, (props) => {
   const { setNodeRef, isOver } = useDroppable({ id: `container-${props.entity.id}` });
   const hasChildren = props.children && props.children.length > 0;
   return (
-    <div className="space-y-3 rounded-lg border-l-2 border-primary/30 bg-muted/20 p-3">
+    <div
+      ref={setNodeRef}
+      className={`space-y-3 rounded-lg border-l-2 border-primary/30 bg-muted/20 p-3 transition-colors ${
+        isOver ? "bg-primary/10 ring-2 ring-primary/40" : ""
+      }`}
+    >
       <div className="flex items-center gap-2 text-sm font-medium text-primary/70">
         <Layers className="h-4 w-4 shrink-0" />
         <FieldHeader
@@ -365,12 +370,7 @@ const SectionEntityComponent = createEntityComponent(sectionEntity, (props) => {
           className="flex-1 min-w-0"
         />
       </div>
-      <div
-        ref={setNodeRef}
-        className={`min-h-[2.5rem] rounded-md transition-colors pl-4 border-l border-border/50 ${
-          isOver ? "bg-primary/10 ring-1 ring-primary/30" : ""
-        }`}
-      >
+      <div className="min-h-[2.5rem] rounded-md pl-4 border-l border-border/50">
         {hasChildren ? (
           <div className="space-y-2">{props.children}</div>
         ) : (
@@ -397,7 +397,12 @@ const RepeatingEntityComponent = createEntityComponent(repeatingEntity, (props) 
   const [rowCount, setRowCount] = useState(1);
 
   return (
-    <div className="space-y-3 rounded-lg border-l-2 border-amber-400/40 bg-muted/20 p-3">
+    <div
+      ref={setNodeRef}
+      className={`space-y-3 rounded-lg border-l-2 border-amber-400/40 bg-muted/20 p-3 transition-colors ${
+        isOver ? "bg-amber-400/10 ring-2 ring-amber-400/40" : ""
+      }`}
+    >
       <div className="flex items-center gap-2 text-sm font-medium text-amber-600/70">
         <Repeat className="h-4 w-4 shrink-0" />
         <FieldHeader
@@ -411,12 +416,7 @@ const RepeatingEntityComponent = createEntityComponent(repeatingEntity, (props) 
           {rowCount} row{rowCount !== 1 ? "s" : ""}
         </Badge>
       </div>
-      <div
-        ref={setNodeRef}
-        className={`min-h-[2.5rem] rounded-md transition-colors pl-4 ${
-          isOver ? "bg-amber-400/10 ring-1 ring-amber-400/40" : ""
-        }`}
-      >
+      <div className="min-h-[2.5rem] rounded-md pl-4">
         {hasChildren ? (
           <div className="space-y-2">{props.children}</div>
         ) : (

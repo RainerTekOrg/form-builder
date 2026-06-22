@@ -5,7 +5,10 @@ import {
   DragOverlay,
   type DragEndEvent,
   type DragStartEvent,
+  type CollisionDetection,
   PointerSensor,
+  pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
   useDroppable,
@@ -19,6 +22,7 @@ import { entityComponents } from "@/src/components/entities/entity-components";
 import { BuilderStoreProvider } from "./builder-store-context";
 import { AddFieldProvider } from "./add-field-context";
 import { AddFieldDropdown } from "./AddFieldDropdown";
+import { SchemaEditorButton } from "@/src/components/schema/SchemaEditorButton";
 import { Plus, Type, AlignLeft, Hash, List, CheckSquare, Calendar, FileUp, Pen, Layers, Repeat, FunctionSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
@@ -55,6 +59,19 @@ const fieldTypeLabels: Record<string, string> = {
   section: "Section",
   repeating: "Repeating",
   computed: "Computed",
+};
+
+/**
+ * Prefer a section/repeating container droppable when the pointer is inside it,
+ * so dragging a field onto a group NESTS it (instead of the default
+ * rectIntersection resolving to the group's own sortable → mere reorder).
+ */
+const collisionDetection: CollisionDetection = (args) => {
+  const pointer = pointerWithin(args);
+  const container = pointer.find((c) => String(c.id).startsWith("container-"));
+  if (container) return [container];
+  if (pointer.length > 0) return pointer;
+  return rectIntersection(args);
 };
 
 function EmptyCanvas() {
@@ -128,14 +145,18 @@ export function FormBuilder({
     <main className="flex h-full flex-col overflow-hidden">
       <div className="flex items-center justify-between border-b px-4 py-2 shrink-0">
         <h2 className="text-sm font-semibold">Canvas</h2>
-        <Badge variant="secondary" className="text-xs font-mono">
-          {schema.root.length} field{schema.root.length !== 1 ? "s" : ""}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="text-xs font-mono">
+            {schema.root.length} field{schema.root.length !== 1 ? "s" : ""}
+          </Badge>
+          <SchemaEditorButton builderStore={builderStore} />
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
         <DndContext
           sensors={sensors}
+          collisionDetection={collisionDetection}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >

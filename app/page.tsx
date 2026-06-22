@@ -10,6 +10,8 @@ import { Playground } from "@/src/components/preview/Playground";
 import { useBuilderSetup } from "@/src/components/canvas/useBuilderSetup";
 import { useBuilderHistory } from "@/src/builder/useBuilderHistory";
 import { FillPage } from "@/src/components/fill/FillPage";
+import { PdfImportButton } from "@/src/components/import/PdfImportButton";
+import { FIELD_TYPE_TO_ENTITY, type ExtractedField } from "@/src/lib/pdf-extract/types";
 import { toast } from "sonner";
 import { generateKey, flattenKeys } from "@/src/serializer/key";
 import { expandGroup } from "@/src/serializer/groups";
@@ -320,6 +322,43 @@ function BuildPage({ hideHeader = false }: { hideHeader?: boolean }) {
     [addEntity, detectCollision, stagedGroups, builderStore],
   );
 
+  // Insert AI-extracted PDF fields into the builder. Keys are de-duped against the
+  // live schema; section/repeating containers are created first, then their
+  // `children` are created and re-parented under them (structural nesting).
+  const handlePdfImport = useCallback(
+    (fields: ExtractedField[]): number => {
+      const existingKeys = flattenKeys(builderStore.getSchema());
+      let count = 0;
+
+      const add = (f: ExtractedField, parentId: string | null) => {
+        const entityName = FIELD_TYPE_TO_ENTITY[f.type] ?? "textField";
+        const base = f.key && f.key.length ? f.key : f.label;
+        const key = existingKeys.has(base) ? generateKey(base, existingKeys) : base;
+        existingKeys.add(key);
+
+        const attrs: Record<string, unknown> = { label: f.label, key };
+        if (f.required) attrs.required = true;
+        if (f.placeholder) attrs.placeholder = f.placeholder;
+        if (f.helpText) attrs.helpText = f.helpText;
+        if (f.options?.length) attrs.options = f.options;
+
+        const entity = addEntity(entityName, attrs);
+        if (!entity) return;
+        count += 1;
+
+        if (parentId) builderStore.setEntityParent(entity.id, parentId);
+
+        if (f.children?.length && (f.type === "section" || f.type === "repeating")) {
+          for (const child of f.children) add(child, entity.id);
+        }
+      };
+
+      for (const f of fields) add(f, null);
+      return count;
+    },
+    [addEntity, builderStore],
+  );
+
   const handleExport = useCallback(() => {
     const schema = builderStore.getSchema();
     const payload = serialize(schema);
@@ -399,6 +438,8 @@ function BuildPage({ hideHeader = false }: { hideHeader?: boolean }) {
           <Playground builderStore={builderStore} />
         </div>
       )}
+
+      {mode === "build" && <PdfImportButton onImport={handlePdfImport} />}
 
       <Dialog open={clearOpen} onOpenChange={setClearOpen}>
         <DialogContent className="sm:max-w-[400px]">

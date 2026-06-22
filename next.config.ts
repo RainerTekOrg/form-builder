@@ -16,6 +16,11 @@ const frameAncestors = allowedOriginsRaw
   .join(" ");
 
 const nextConfig: NextConfig = {
+  // pdf-parse (v2) pulls in pdfjs-dist, which loads a worker file at runtime.
+  // Bundling them breaks that worker resolution ("Cannot find module
+  // pdf.worker.mjs"). Opt them out so they run via native Node require.
+  serverExternalPackages: ["pdf-parse", "pdfjs-dist"],
+
   async headers() {
     return [
       {

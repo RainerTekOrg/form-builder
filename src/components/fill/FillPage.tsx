@@ -27,6 +27,10 @@ export function FillPage() {
   const [loaded, setLoaded] = useState(false);
   const [interpreterAttached, setInterpreterAttached] = useState(false);
   const [isValid, setIsValid] = useState(false);
+  // Bumped on each LOAD_FILL so Playground remounts with a fresh interpreter
+  // (the host re-LOADs to re-bake dependent options, e.g. company→location).
+  // Also re-binds the values/validity subscription below to the new interpreter.
+  const [loadNonce, setLoadNonce] = useState(0);
   const fillPayloadRef = useRef<FillPayload | null>(null);
 
   useEffect(() => {
@@ -63,7 +67,9 @@ export function FillPage() {
           if (payload.title) setTitle(payload.title);
           fillPayloadRef.current = payload;
           setLoaded(true);
-          toast.success("Form ready to fill");
+          // Force a fresh interpreter so re-LOADs (dependent-option re-bakes)
+          // pick up the new schema and re-apply preserved defaults.
+          setLoadNonce((n) => n + 1);
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           bridge.emitError("INVALID_FORM", message);
@@ -94,7 +100,7 @@ export function FillPage() {
   );
 
   useEffect(() => {
-    if (!interpreterAttached) return;
+    if (!loadNonce) return;
     const interpreter = interpreterRef.current;
     if (!interpreter) return;
 
@@ -153,7 +159,7 @@ export function FillPage() {
     return () => {
       unsub();
     };
-  }, [interpreterAttached, builderStore]);
+  }, [loadNonce, builderStore]);
 
   const handleSubmit = useCallback(async () => {
     const bridge = bridgeRef.current;
@@ -211,6 +217,7 @@ export function FillPage() {
           </div>
         ) : (
           <Playground
+            key={loadNonce}
             builderStore={builderStore}
             hideHeader
             onInterpreterReady={handleInterpreterReady}

@@ -36,6 +36,7 @@ export interface Bridge {
   emitError: (code: string, message: string) => boolean;
   emitReady: () => boolean;
   emitDirtyState: (isDirty: boolean) => boolean;
+  emitValuesChanged: (values: Record<string, unknown>) => boolean;
   getParentOrigin: () => string | null;
 }
 
@@ -190,6 +191,15 @@ export function createBridge(
     return true;
   }
 
+  function emitValuesChanged(values: Record<string, unknown>): boolean {
+    if (!parentOrigin) {
+      return false;
+    }
+    const message: OutboundMessage = { type: "VALUES_CHANGED", payload: { values } };
+    window.parent.postMessage(message, parentOrigin);
+    return true;
+  }
+
   function attach() {
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
@@ -203,6 +213,7 @@ export function createBridge(
     emitError,
     emitReady,
     emitDirtyState,
+    emitValuesChanged,
     getParentOrigin: () => parentOrigin,
   };
 }
