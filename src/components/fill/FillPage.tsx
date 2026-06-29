@@ -22,6 +22,12 @@ export function FillPage() {
   const builderStore = useBuilderStore(formBuilder);
   const bridgeRef = useRef<ReturnType<typeof createBridge> | null>(null);
   const interpreterRef = useRef<InterpreterStore<typeof formBuilder> | null>(null);
+  // Embedded in the portal (?embed=1): the host owns the Submit button (its own
+  // header), so we hide our FillHeader and submit on a REQUEST_SUBMIT message.
+  const isEmbed =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("embed") === "1";
+  const handleSubmitRef = useRef<() => void>(() => {});
 
   const [title, setTitle] = useState("Form");
   const [loaded, setLoaded] = useState(false);
@@ -80,6 +86,9 @@ export function FillPage() {
       (origin) => {
         toast.error(`Rejected message from untrusted origin: ${origin}`);
       },
+      undefined,
+      // REQUEST_SUBMIT (host owns the Submit button): validate + emit FORM_FILLED.
+      () => handleSubmitRef.current(),
     );
     bridgeRef.current = bridge;
     const cleanup = bridge.attach();
@@ -159,7 +168,10 @@ export function FillPage() {
     return () => {
       unsub();
     };
-  }, [loadNonce, builderStore]);
+    // `interpreterAttached` is included so validity wires up even if the interpreter
+    // attaches AFTER this effect first runs (otherwise the subscription is never set
+    // and the Submit button stays disabled forever).
+  }, [loadNonce, builderStore, interpreterAttached]);
 
   const handleSubmit = useCallback(async () => {
     const bridge = bridgeRef.current;
@@ -195,14 +207,21 @@ export function FillPage() {
     toast.info("Cancelled");
   }, []);
 
+  // Keep the ref the bridge calls on REQUEST_SUBMIT pointed at the latest handler.
+  useEffect(() => {
+    handleSubmitRef.current = handleSubmit;
+  }, [handleSubmit]);
+
   return (
     <div className="flex h-dvh flex-col bg-background">
-      <FillHeader
-        title={title}
-        canSubmit={isValid && interpreterAttached}
-        onCancel={handleCancel}
-        onSubmit={handleSubmit}
-      />
+      {!isEmbed && (
+        <FillHeader
+          title={title}
+          canSubmit={isValid && interpreterAttached}
+          onCancel={handleCancel}
+          onSubmit={handleSubmit}
+        />
+      )}
       <div className="flex flex-1 overflow-hidden w-full">
         {!loaded ? (
           <div className="flex flex-1 items-center justify-center p-8">

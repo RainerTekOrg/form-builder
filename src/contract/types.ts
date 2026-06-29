@@ -93,7 +93,11 @@ export type InboundMessage =
   | { type: "LOAD_GROUP"; payload: GroupPayload }
   | { type: "LOAD_FILL"; payload: FillPayload }
   | { type: "SET_CONFIG"; payload: { allowedFieldTypes?: string[]; theme?: "light" | "dark"; mode?: "build" | "preview" } }
-  | { type: "TRIGGER_SAVE" };
+  | { type: "TRIGGER_SAVE" }
+  // Fill mode: the host asks the form to validate + submit (host owns the Submit
+  // button, e.g. in the portal header). The form validates and emits FORM_FILLED
+  // on success, or shows inline errors on failure.
+  | { type: "REQUEST_SUBMIT" };
 
 export type OutboundMessage =
   | { type: "FORM_SAVED"; payload: FormPayload }
