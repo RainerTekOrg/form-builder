@@ -38,7 +38,7 @@ export default function Home({
 }) {
   const params = use(searchParams);
   if (params?.mode === "fill") {
-    return <FillPage />;
+    return <FillPage embed={params?.embed === "1"} />;
   }
 
   return <BuildPage hideHeader={params?.embed === "1"} />;

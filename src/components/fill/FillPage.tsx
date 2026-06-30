@@ -18,15 +18,15 @@ import type {
   GroupPayload,
 } from "@/src/contract/types";
 
-export function FillPage() {
+export function FillPage({ embed = false }: { embed?: boolean }) {
   const builderStore = useBuilderStore(formBuilder);
   const bridgeRef = useRef<ReturnType<typeof createBridge> | null>(null);
   const interpreterRef = useRef<InterpreterStore<typeof formBuilder> | null>(null);
   // Embedded in the portal (?embed=1): the host owns the Submit button (its own
   // header), so we hide our FillHeader and submit on a REQUEST_SUBMIT message.
-  const isEmbed =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("embed") === "1";
+  // Taken as a prop (resolved from searchParams on the server) so SSR and the client
+  // agree — deriving it from `window` here would cause a hydration mismatch.
+  const isEmbed = embed;
   const handleSubmitRef = useRef<() => void>(() => {});
 
   const [title, setTitle] = useState("Form");
