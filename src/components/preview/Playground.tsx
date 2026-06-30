@@ -126,7 +126,7 @@ export function Playground({
 
   const formValueContext = useMemo(() => {
     const schemaEntities = (builderStore.getSchema() as unknown as {
-      entities: Record<string, { attributes: Record<string, unknown> }>;
+      entities: Record<string, { type: string; attributes: Record<string, unknown>; children?: string[] }>;
     }).entities;
     const keyToId = new Map<string, string>();
     for (const [id, entity] of Object.entries(schemaEntities)) {
@@ -139,6 +139,7 @@ export function Playground({
         if (!entityId) return undefined;
         return allValues[entityId];
       },
+      entities: schemaEntities,
     };
   }, [allValues, builderStore]);
 

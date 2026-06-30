@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { useRef, useState, useEffect, useMemo, type ChangeEvent } from "react";
 import { useFormValues } from "./FormValueContext";
+import { RepeatingRows } from "./RepeatingRows";
 import { computeFormula } from "./compute-formula";
 
 function FieldError({ error }: { error: unknown }) {
@@ -469,9 +470,14 @@ const RepeatingInteractive = createEntityComponent(repeatingEntity, (props) => (
         {props.entity.attributes.label}
       </span>
     </div>
-    {props.children && props.children.length > 0 ? (
-      <div className="space-y-4">{props.children}</div>
-    ) : null}
+    {/* Multi-row: the repeating entity's value is an array of row objects (keyed by
+        each child's local key). We render our own per-row inputs (not the shared
+        coltorapps children) so each row holds its own values. */}
+    <RepeatingRows
+      entityId={props.entity.id}
+      value={props.entity.value}
+      onChange={(rows) => props.setValue(rows.length > 0 ? rows : undefined)}
+    />
   </div>
 ));
 

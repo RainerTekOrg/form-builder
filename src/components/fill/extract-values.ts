@@ -26,11 +26,20 @@ export function extractValues(
   for (const [entityId, raw] of Object.entries(allValues)) {
     const entity = entities[entityId];
     if (!entity) continue;
-    if (entity.type === "section" || entity.type === "repeating") continue;
-    if (raw === undefined || raw === null) continue;
+    // Sections are containers; their leaf children contribute their own (flat-dotted)
+    // values, so the section entity itself emits nothing.
+    if (entity.type === "section") continue;
 
     const propertyName = entity.attributes.key as string | undefined;
     if (!propertyName) continue;
+
+    // Repeating groups carry an ARRAY of row objects on the entity value itself.
+    if (entity.type === "repeating") {
+      if (Array.isArray(raw) && raw.length > 0) values[propertyName] = raw;
+      continue;
+    }
+
+    if (raw === undefined || raw === null) continue;
     values[propertyName] = raw;
   }
 
