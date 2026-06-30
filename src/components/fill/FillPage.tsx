@@ -164,9 +164,28 @@ export function FillPage({ embed = false }: { embed?: boolean }) {
     };
 
     update();
-    const unsub = interpreter.subscribe(() => update());
+
+    // Debounced VALUES_CHANGED so the host can draft-autosave without a save-per-keystroke.
+    let valuesTimer: ReturnType<typeof setTimeout> | null = null;
+    const emitValuesDebounced = () => {
+      if (valuesTimer) clearTimeout(valuesTimer);
+      valuesTimer = setTimeout(() => {
+        try {
+          const { values } = extractValues(interpreter, builderStore);
+          bridgeRef.current?.emitValuesChanged(values);
+        } catch {
+          // ignore — autosave is best-effort
+        }
+      }, 1000);
+    };
+
+    const unsub = interpreter.subscribe(() => {
+      update();
+      emitValuesDebounced();
+    });
     return () => {
       unsub();
+      if (valuesTimer) clearTimeout(valuesTimer);
     };
     // `interpreterAttached` is included so validity wires up even if the interpreter
     // attaches AFTER this effect first runs (otherwise the subscription is never set
@@ -212,8 +231,30 @@ export function FillPage({ embed = false }: { embed?: boolean }) {
     handleSubmitRef.current = handleSubmit;
   }, [handleSubmit]);
 
+  // Embed: report content height (debounced via rAF) so the host sizes the iframe and
+  // the PAGE scrolls — not the iframe. Re-measures on load + as content grows/shrinks
+  // (e.g. repeating rows added). Standalone (non-embed) keeps its own full-height scroll.
+  useEffect(() => {
+    if (!isEmbed || typeof document === "undefined") return;
+    let raf = 0;
+    const post = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const h = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+        if (h > 0) bridgeRef.current?.emitContentHeight(h);
+      });
+    };
+    post();
+    const ro = new ResizeObserver(post);
+    ro.observe(document.body);
+    return () => {
+      ro.disconnect();
+      cancelAnimationFrame(raf);
+    };
+  }, [isEmbed, loaded, loadNonce]);
+
   return (
-    <div className="flex h-dvh flex-col bg-background">
+    <div className={isEmbed ? "flex flex-col bg-background" : "flex h-dvh flex-col bg-background"}>
       {!isEmbed && (
         <FillHeader
           title={title}
@@ -222,9 +263,9 @@ export function FillPage({ embed = false }: { embed?: boolean }) {
           onSubmit={handleSubmit}
         />
       )}
-      <div className="flex flex-1 overflow-hidden w-full">
+      <div className={isEmbed ? "w-full" : "flex flex-1 overflow-hidden w-full"}>
         {!loaded ? (
-          <div className="flex flex-1 items-center justify-center p-8">
+          <div className="flex items-center justify-center p-8">
             <div className="text-center max-w-xs">
               <p className="text-sm text-muted-foreground">
                 Waiting for the host to send a form…
@@ -239,6 +280,7 @@ export function FillPage({ embed = false }: { embed?: boolean }) {
             key={loadNonce}
             builderStore={builderStore}
             hideHeader
+            autoHeight={isEmbed}
             onInterpreterReady={handleInterpreterReady}
           />
         )}

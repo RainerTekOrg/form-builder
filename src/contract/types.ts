@@ -108,4 +108,7 @@ export type OutboundMessage =
   | { type: "DIRTY_STATE"; payload: { isDirty: boolean } }
   // Emitted (debounced) in fill mode whenever entered values change, so the host
   // can react to dependent fields (e.g. re-baking a dependent select's options).
-  | { type: "VALUES_CHANGED"; payload: { values: Record<string, unknown> } };
+  | { type: "VALUES_CHANGED"; payload: { values: Record<string, unknown> } }
+  // Fill mode (embed): the form's content height in px, so the host can size the
+  // iframe and let the page (not the iframe) scroll.
+  | { type: "CONTENT_HEIGHT"; payload: { height: number } };

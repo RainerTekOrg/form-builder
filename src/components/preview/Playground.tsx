@@ -16,6 +16,9 @@ import { Eye, RotateCcw } from "lucide-react";
 interface PlaygroundProps {
   builderStore: BuilderStore<typeof formBuilder>;
   hideHeader?: boolean;
+  /** When true, the content flows at its natural height (no inner scroll) so the host
+   *  page can scroll and size the iframe (embedded fill mode). */
+  autoHeight?: boolean;
   onInterpreterReady?: (interpreter: InterpreterStore<typeof formBuilder>) => void;
 }
 
@@ -88,6 +91,7 @@ function groupFieldsByWidth(
 export function Playground({
   builderStore,
   hideHeader = false,
+  autoHeight = false,
   onInterpreterReady,
 }: PlaygroundProps) {
   const schema = builderStore.getSchema();
@@ -163,8 +167,43 @@ export function Playground({
 
   const totalFields = Object.keys(rawEntities).length;
 
+  const formBody = !hasEntities ? (
+    <div className="flex h-full items-center justify-center p-8">
+      <div className="text-center max-w-xs">
+        <Eye className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+        <h3 className="text-sm font-medium mb-1">Nothing to preview</h3>
+        <p className="text-xs text-muted-foreground">Add some fields in the Build tab first.</p>
+      </div>
+    </div>
+  ) : (
+    <FormValueContext.Provider value={formValueContext}>
+      <div className="flex justify-center p-4 md:p-8">
+        <div className="w-full max-w-4xl bg-card rounded-xl border border-border shadow-sm p-5 md:p-8 space-y-6">
+          {fieldGroups.map((group, i) => {
+            if (Array.isArray(group)) {
+              const visible = group.filter((e) => visibility[e.entityId] !== false);
+              if (visible.length === 0) return null;
+              const singleInRow = visible.length === 1;
+              return (
+                <div key={i} className="grid gap-5 sm:grid-cols-2">
+                  {visible.map((entry) => (
+                    <div key={entry.entityId} className={singleInRow ? "sm:col-span-2" : ""}>
+                      {renderField(entry.entityId)}
+                    </div>
+                  ))}
+                </div>
+              );
+            }
+            if (visibility[group.entityId] === false) return null;
+            return <div key={group.entityId}>{renderField(group.entityId)}</div>;
+          })}
+        </div>
+      </div>
+    </FormValueContext.Provider>
+  );
+
   return (
-    <main className="flex h-full flex-col overflow-hidden w-full">
+    <main className={autoHeight ? "flex flex-col w-full" : "flex h-full flex-col overflow-hidden w-full"}>
       {!hideHeader && (
         <div className="flex items-center justify-between border-b px-4 py-2 shrink-0">
           <div className="flex items-center gap-2">
@@ -190,51 +229,11 @@ export function Playground({
         </div>
       )}
 
-      <ScrollArea className="flex-1 min-h-0">
-        {!hasEntities ? (
-          <div className="flex h-full items-center justify-center p-8">
-            <div className="text-center max-w-xs">
-              <Eye className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-              <h3 className="text-sm font-medium mb-1">Nothing to preview</h3>
-              <p className="text-xs text-muted-foreground">
-                Add some fields in the Build tab first.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <FormValueContext.Provider value={formValueContext}>
-            <div className="flex justify-center p-4 md:p-8">
-              <div className="w-full max-w-4xl bg-card rounded-xl border border-border shadow-sm p-5 md:p-8 space-y-6">
-                {fieldGroups.map((group, i) => {
-                  if (Array.isArray(group)) {
-                    const visible = group.filter((e) => visibility[e.entityId] !== false);
-                    if (visible.length === 0) return null;
-                    const singleInRow = visible.length === 1;
-                    return (
-                      <div
-                        key={i}
-                        className="grid gap-5 sm:grid-cols-2"
-                      >
-                        {visible.map((entry) => (
-                          <div key={entry.entityId} className={singleInRow ? "sm:col-span-2" : ""}>
-                            {renderField(entry.entityId)}
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  }
-                  if (visibility[group.entityId] === false) return null;
-                  return (
-                    <div key={group.entityId}>
-                      {renderField(group.entityId)}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </FormValueContext.Provider>
-        )}
-      </ScrollArea>
+      {autoHeight ? (
+        <div className="w-full">{formBody}</div>
+      ) : (
+        <ScrollArea className="flex-1 min-h-0">{formBody}</ScrollArea>
+      )}
     </main>
   );
 }
