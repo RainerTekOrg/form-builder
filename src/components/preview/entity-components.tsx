@@ -490,6 +490,22 @@ const ComputedFieldInteractive = createEntityComponent(computedFieldEntity, (pro
     return computeFormula(formula as string, getFieldValue);
   }, [formula, getFieldValue]);
 
+  // Persist the computed result onto the entity so it is SAVED with the record and
+  // renders in the report (otherwise a computed token comes out blank). Guarded so it
+  // only writes when the result actually changes → no render loop.
+  const setValue = props.setValue;
+  const currentValue = props.entity.value;
+  useEffect(() => {
+    // The entity value is stored as a string (so it round-trips through the record
+    // like every other field); coerce the numeric formula result before persisting.
+    const next =
+      computed && !computed.error && computed.result !== null
+        ? String(computed.result)
+        : undefined;
+    if (next !== currentValue) setValue(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [computed?.result, computed?.error]);
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-2">
