@@ -50,42 +50,72 @@ const ENTITY_DEFAULT_WIDTH: Record<string, FieldWidth> = {
   computedField: "full",
 };
 
+// A 6-column grid is the common denominator of halves, thirds, and two-thirds.
+const WIDTH_UNITS: Record<FieldWidth, number> = {
+  full: 6,
+  "two-thirds": 4,
+  half: 3,
+  third: 2,
+};
+
+// Static classes (never build these dynamically — Tailwind must see the literals).
+const SPAN_CLASS: Record<FieldWidth, string> = {
+  full: "sm:col-span-6",
+  "two-thirds": "sm:col-span-4",
+  half: "sm:col-span-3",
+  third: "sm:col-span-2",
+};
+
+const ROW_UNITS = 6;
+
 function getFieldWidth(
   entityType: string,
   attributes?: Record<string, unknown>,
 ): FieldWidth {
   const explicit = attributes?.["fieldWidth"] as FieldWidth | undefined;
-  if (explicit) return explicit;
+  if (explicit && explicit in WIDTH_UNITS) return explicit;
   return ENTITY_DEFAULT_WIDTH[entityType] ?? "half";
 }
 
-function groupFieldsByWidth(
+/**
+ * Pack fields into rows of at most 6 width-units so every field honors its
+ * chosen width (full / two-thirds / half / third) without leaving mid-row gaps.
+ * A field that would overflow the current row starts a new one; a full-width
+ * field always sits on its own row.
+ */
+export function groupFieldsByWidth(
   root: readonly string[],
   entities: Record<string, SchemaEntity>,
-): (FieldWidthEntry | FieldWidthEntry[])[] {
-  const groups: (FieldWidthEntry | FieldWidthEntry[])[] = [];
+): FieldWidthEntry[][] {
+  const rows: FieldWidthEntry[][] = [];
   let currentRow: FieldWidthEntry[] = [];
+  let used = 0;
+
+  const flush = () => {
+    if (currentRow.length > 0) {
+      rows.push(currentRow);
+      currentRow = [];
+      used = 0;
+    }
+  };
 
   for (const entityId of root) {
     const entity = entities[entityId];
     const width = getFieldWidth(entity?.type ?? "", entity?.attributes);
+    const units = WIDTH_UNITS[width];
 
     if (width === "full") {
-      if (currentRow.length > 0) {
-        groups.push(currentRow);
-        currentRow = [];
-      }
-      groups.push({ entityId, width });
-    } else {
-      currentRow.push({ entityId, width });
+      flush();
+      rows.push([{ entityId, width }]);
+      continue;
     }
+    if (used + units > ROW_UNITS) flush();
+    currentRow.push({ entityId, width });
+    used += units;
   }
 
-  if (currentRow.length > 0) {
-    groups.push(currentRow);
-  }
-
-  return groups;
+  flush();
+  return rows;
 }
 
 export function Playground({
@@ -179,23 +209,24 @@ export function Playground({
     <FormValueContext.Provider value={formValueContext}>
       <div className="flex justify-center p-4 md:p-8">
         <div className="w-full max-w-4xl bg-card rounded-xl border border-border shadow-sm p-5 md:p-8 space-y-6">
-          {fieldGroups.map((group, i) => {
-            if (Array.isArray(group)) {
-              const visible = group.filter((e) => visibility[e.entityId] !== false);
-              if (visible.length === 0) return null;
-              const singleInRow = visible.length === 1;
-              return (
-                <div key={i} className="grid gap-5 sm:grid-cols-2">
-                  {visible.map((entry) => (
-                    <div key={entry.entityId} className={singleInRow ? "sm:col-span-2" : ""}>
-                      {renderField(entry.entityId)}
-                    </div>
-                  ))}
-                </div>
-              );
-            }
-            if (visibility[group.entityId] === false) return null;
-            return <div key={group.entityId}>{renderField(group.entityId)}</div>;
+          {fieldGroups.map((row, i) => {
+            const visible = row.filter((e) => visibility[e.entityId] !== false);
+            if (visible.length === 0) return null;
+            // A field left alone on its row reads better stretched to full width
+            // than sitting at a lonely partial width.
+            const singleInRow = visible.length === 1;
+            return (
+              <div key={i} className="grid grid-cols-1 gap-5 sm:grid-cols-6">
+                {visible.map((entry) => (
+                  <div
+                    key={entry.entityId}
+                    className={singleInRow ? SPAN_CLASS.full : SPAN_CLASS[entry.width]}
+                  >
+                    {renderField(entry.entityId)}
+                  </div>
+                ))}
+              </div>
+            );
           })}
         </div>
       </div>
