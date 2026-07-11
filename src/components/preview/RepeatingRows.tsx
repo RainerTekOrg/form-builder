@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Trash2 } from "lucide-react";
 import { useFormValues, type SchemaEntityLite } from "./FormValueContext";
+import { DateInput } from "./DateInput";
 
 type Row = Record<string, unknown>;
 
@@ -131,11 +132,11 @@ function RowField({
       return (
         <div className="space-y-1">
           {labelEl}
-          <Input
+          <DateInput
             id={id}
             type="date"
             value={typeof value === "string" ? value : ""}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value || undefined)}
+            onChange={(v) => onChange(v)}
           />
         </div>
       );
@@ -143,11 +144,11 @@ function RowField({
       return (
         <div className="space-y-1">
           {labelEl}
-          <Input
+          <DateInput
             id={id}
             type="datetime-local"
             value={typeof value === "string" ? value : ""}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value || undefined)}
+            onChange={(v) => onChange(v)}
           />
         </div>
       );
