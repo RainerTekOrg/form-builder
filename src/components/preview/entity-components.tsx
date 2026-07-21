@@ -39,23 +39,19 @@ import {
 } from "lucide-react";
 import { useRef, useState, useEffect, useMemo, type ChangeEvent } from "react";
 import { useFormValues } from "./FormValueContext";
+import { RepeatingRows } from "./RepeatingRows";
 import { computeFormula } from "./compute-formula";
-
-function FieldError({ error }: { error: unknown }) {
-  if (!error) return null;
-  return (
-    <p className="text-xs text-destructive mt-1" role="alert">
-      {error instanceof Error ? error.message : String(error)}
-    </p>
-  );
-}
+import { FieldShell } from "./FieldShell";
+import { DateInput } from "./DateInput";
 
 const TextFieldInteractive = createEntityComponent(textFieldEntity, (props) => (
-  <div className="space-y-1.5">
-    <Label className="text-sm font-medium" htmlFor={props.entity.id}>
-      {props.entity.attributes.label}
-      {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-    </Label>
+  <FieldShell
+    label={props.entity.attributes.label}
+    required={props.entity.attributes.required}
+    error={props.entity.error}
+    helpText={props.entity.attributes.helpText}
+    htmlFor={props.entity.id}
+  >
     <Input
       id={props.entity.id}
       value={typeof props.entity.value === "string" ? props.entity.value : ""}
@@ -65,19 +61,17 @@ const TextFieldInteractive = createEntityComponent(textFieldEntity, (props) => (
       className={cn(props.entity.error ? "border-destructive" : undefined)}
       aria-invalid={!!props.entity.error}
     />
-    <FieldError error={props.entity.error} />
-    {props.entity.attributes.helpText && (
-      <p className="text-xs text-muted-foreground">{props.entity.attributes.helpText}</p>
-    )}
-  </div>
+  </FieldShell>
 ));
 
 const TextareaFieldInteractive = createEntityComponent(textareaFieldEntity, (props) => (
-  <div className="space-y-1.5">
-    <Label className="text-sm font-medium" htmlFor={props.entity.id}>
-      {props.entity.attributes.label}
-      {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-    </Label>
+  <FieldShell
+    label={props.entity.attributes.label}
+    required={props.entity.attributes.required}
+    error={props.entity.error}
+    helpText={props.entity.attributes.helpText}
+    htmlFor={props.entity.id}
+  >
     <Textarea
       id={props.entity.id}
       value={typeof props.entity.value === "string" ? props.entity.value : ""}
@@ -87,19 +81,17 @@ const TextareaFieldInteractive = createEntityComponent(textareaFieldEntity, (pro
       className={cn("resize-none", props.entity.error ? "border-destructive" : undefined)}
       aria-invalid={!!props.entity.error}
     />
-    <FieldError error={props.entity.error} />
-    {props.entity.attributes.helpText && (
-      <p className="text-xs text-muted-foreground">{props.entity.attributes.helpText}</p>
-    )}
-  </div>
+  </FieldShell>
 ));
 
 const NumberFieldInteractive = createEntityComponent(numberFieldEntity, (props) => (
-  <div className="space-y-1.5">
-    <Label className="text-sm font-medium" htmlFor={props.entity.id}>
-      {props.entity.attributes.label}
-      {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-    </Label>
+  <FieldShell
+    label={props.entity.attributes.label}
+    required={props.entity.attributes.required}
+    error={props.entity.error}
+    helpText={props.entity.attributes.helpText}
+    htmlFor={props.entity.id}
+  >
     <div className="flex items-center gap-1.5">
       <Input
         id={props.entity.id}
@@ -115,19 +107,17 @@ const NumberFieldInteractive = createEntityComponent(numberFieldEntity, (props) 
         <span className="text-sm text-muted-foreground shrink-0 min-w-[2ch]">{props.entity.attributes.unit}</span>
       )}
     </div>
-    <FieldError error={props.entity.error} />
-    {props.entity.attributes.helpText && (
-      <p className="text-xs text-muted-foreground">{props.entity.attributes.helpText}</p>
-    )}
-  </div>
+  </FieldShell>
 ));
 
 const IntegerFieldInteractive = createEntityComponent(integerFieldEntity, (props) => (
-  <div className="space-y-1.5">
-    <Label className="text-sm font-medium" htmlFor={props.entity.id}>
-      {props.entity.attributes.label}
-      {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-    </Label>
+  <FieldShell
+    label={props.entity.attributes.label}
+    required={props.entity.attributes.required}
+    error={props.entity.error}
+    helpText={props.entity.attributes.helpText}
+    htmlFor={props.entity.id}
+  >
     <div className="flex items-center gap-1.5">
       <Input
         id={props.entity.id}
@@ -144,26 +134,24 @@ const IntegerFieldInteractive = createEntityComponent(integerFieldEntity, (props
         <span className="text-sm text-muted-foreground shrink-0">{props.entity.attributes.unit}</span>
       )}
     </div>
-    <FieldError error={props.entity.error} />
-    {props.entity.attributes.helpText && (
-      <p className="text-xs text-muted-foreground">{props.entity.attributes.helpText}</p>
-    )}
-  </div>
+  </FieldShell>
 ));
 
 const SelectFieldInteractive = createEntityComponent(selectFieldEntity, (props) => (
-  <div className="space-y-1.5">
-    <Label className="text-sm font-medium" htmlFor={props.entity.id}>
-      {props.entity.attributes.label}
-      {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-    </Label>
+  <FieldShell
+    label={props.entity.attributes.label}
+    required={props.entity.attributes.required}
+    error={props.entity.error}
+    helpText={props.entity.attributes.helpText}
+    htmlFor={props.entity.id}
+  >
     <Select
       value={typeof props.entity.value === "string" ? props.entity.value : undefined}
       onValueChange={(val) => { props.setValue(val); props.validateValue(); }}
     >
       <SelectTrigger
         id={props.entity.id}
-        className={cn(props.entity.error ? "border-destructive" : undefined)}
+        className={cn("w-full", props.entity.error ? "border-destructive" : undefined)}
       >
         <SelectValue placeholder={props.entity.attributes.placeholder ?? "Select..."} />
       </SelectTrigger>
@@ -173,19 +161,16 @@ const SelectFieldInteractive = createEntityComponent(selectFieldEntity, (props) 
         ))}
       </SelectContent>
     </Select>
-    <FieldError error={props.entity.error} />
-    {props.entity.attributes.helpText && (
-      <p className="text-xs text-muted-foreground">{props.entity.attributes.helpText}</p>
-    )}
-  </div>
+  </FieldShell>
 ));
 
 const MultiSelectFieldInteractive = createEntityComponent(multiSelectFieldEntity, (props) => (
-  <div className="space-y-1.5">
-    <Label className="text-sm font-medium">
-      {props.entity.attributes.label}
-      {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-    </Label>
+  <FieldShell
+    label={props.entity.attributes.label}
+    required={props.entity.attributes.required}
+    error={props.entity.error}
+    helpText={props.entity.attributes.helpText}
+  >
     <div className={cn(
       "flex min-h-9 flex-wrap gap-1 rounded-md border px-3 py-2",
       props.entity.error ? "border-destructive" : "border-input",
@@ -218,15 +203,11 @@ const MultiSelectFieldInteractive = createEntityComponent(multiSelectFieldEntity
         <span className="text-sm text-muted-foreground">No options available</span>
       )}
     </div>
-    <FieldError error={props.entity.error} />
-    {props.entity.attributes.helpText && (
-      <p className="text-xs text-muted-foreground">{props.entity.attributes.helpText}</p>
-    )}
-  </div>
+  </FieldShell>
 ));
 
 const BooleanFieldInteractive = createEntityComponent(booleanFieldEntity, (props) => (
-  <div className="space-y-1.5">
+  <FieldShell error={props.entity.error} helpText={props.entity.attributes.helpText}>
     <div className="flex items-center gap-2">
       <Checkbox
         id={props.entity.id}
@@ -239,55 +220,45 @@ const BooleanFieldInteractive = createEntityComponent(booleanFieldEntity, (props
         {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
       </Label>
     </div>
-    <FieldError error={props.entity.error} />
-    {props.entity.attributes.helpText && (
-      <p className="text-xs text-muted-foreground pl-6">{props.entity.attributes.helpText}</p>
-    )}
-  </div>
+  </FieldShell>
 ));
 
 const DateFieldInteractive = createEntityComponent(dateFieldEntity, (props) => (
-  <div className="space-y-1.5">
-    <Label className="text-sm font-medium" htmlFor={props.entity.id}>
-      {props.entity.attributes.label}
-      {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-    </Label>
-    <Input
+  <FieldShell
+    label={props.entity.attributes.label}
+    required={props.entity.attributes.required}
+    error={props.entity.error}
+    helpText={props.entity.attributes.helpText}
+    htmlFor={props.entity.id}
+  >
+    <DateInput
       id={props.entity.id}
       type="date"
       value={typeof props.entity.value === "string" ? props.entity.value : ""}
-      onChange={(e: ChangeEvent<HTMLInputElement>) => props.setValue(e.target.value || undefined)}
+      onChange={(v) => props.setValue(v)}
       onBlur={() => props.validateValue()}
-      className={cn(props.entity.error ? "border-destructive" : undefined)}
-      aria-invalid={!!props.entity.error}
+      error={!!props.entity.error}
     />
-    <FieldError error={props.entity.error} />
-    {props.entity.attributes.helpText && (
-      <p className="text-xs text-muted-foreground">{props.entity.attributes.helpText}</p>
-    )}
-  </div>
+  </FieldShell>
 ));
 
 const DatetimeFieldInteractive = createEntityComponent(datetimeFieldEntity, (props) => (
-  <div className="space-y-1.5">
-    <Label className="text-sm font-medium" htmlFor={props.entity.id}>
-      {props.entity.attributes.label}
-      {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-    </Label>
-    <Input
+  <FieldShell
+    label={props.entity.attributes.label}
+    required={props.entity.attributes.required}
+    error={props.entity.error}
+    helpText={props.entity.attributes.helpText}
+    htmlFor={props.entity.id}
+  >
+    <DateInput
       id={props.entity.id}
       type="datetime-local"
       value={typeof props.entity.value === "string" ? props.entity.value : ""}
-      onChange={(e: ChangeEvent<HTMLInputElement>) => props.setValue(e.target.value || undefined)}
+      onChange={(v) => props.setValue(v)}
       onBlur={() => props.validateValue()}
-      className={cn(props.entity.error ? "border-destructive" : undefined)}
-      aria-invalid={!!props.entity.error}
+      error={!!props.entity.error}
     />
-    <FieldError error={props.entity.error} />
-    {props.entity.attributes.helpText && (
-      <p className="text-xs text-muted-foreground">{props.entity.attributes.helpText}</p>
-    )}
-  </div>
+  </FieldShell>
 ));
 
 const FileFieldInteractive = createEntityComponent(fileFieldEntity, (props) => {
@@ -297,11 +268,12 @@ const FileFieldInteractive = createEntityComponent(fileFieldEntity, (props) => {
   const fileRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="space-y-1.5">
-      <Label className="text-sm font-medium">
-        {props.entity.attributes.label}
-        {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-      </Label>
+    <FieldShell
+      label={props.entity.attributes.label}
+      required={props.entity.attributes.required}
+      error={props.entity.error}
+      helpText={props.entity.attributes.helpText}
+    >
       <div
         className={cn(
           "flex items-center gap-2 rounded-md border border-dashed px-3 py-4 text-sm text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors",
@@ -333,11 +305,7 @@ const FileFieldInteractive = createEntityComponent(fileFieldEntity, (props) => {
           }
         }}
       />
-      <FieldError error={props.entity.error} />
-      {props.entity.attributes.helpText && (
-        <p className="text-xs text-muted-foreground">{props.entity.attributes.helpText}</p>
-      )}
-    </div>
+    </FieldShell>
   );
 });
 
@@ -413,11 +381,12 @@ const SignatureFieldInteractive = createEntityComponent(signatureFieldEntity, (p
   };
 
   return (
-    <div className="space-y-1.5">
-      <Label className="text-sm font-medium">
-        {props.entity.attributes.label}
-        {props.entity.attributes.required && <RequiredIndicator className="ml-0.5" />}
-      </Label>
+    <FieldShell
+      label={props.entity.attributes.label}
+      required={props.entity.attributes.required}
+      error={props.entity.error}
+      helpText={props.entity.attributes.helpText}
+    >
       <canvas
         ref={canvasRef}
         className={cn(
@@ -439,11 +408,7 @@ const SignatureFieldInteractive = createEntityComponent(signatureFieldEntity, (p
           Clear signature
         </button>
       </div>
-      <FieldError error={props.entity.error} />
-      {props.entity.attributes.helpText && (
-        <p className="text-xs text-muted-foreground">{props.entity.attributes.helpText}</p>
-      )}
-    </div>
+    </FieldShell>
   );
 });
 
@@ -469,9 +434,14 @@ const RepeatingInteractive = createEntityComponent(repeatingEntity, (props) => (
         {props.entity.attributes.label}
       </span>
     </div>
-    {props.children && props.children.length > 0 ? (
-      <div className="space-y-4">{props.children}</div>
-    ) : null}
+    {/* Multi-row: the repeating entity's value is an array of row objects (keyed by
+        each child's local key). We render our own per-row inputs (not the shared
+        coltorapps children) so each row holds its own values. */}
+    <RepeatingRows
+      entityId={props.entity.id}
+      value={props.entity.value}
+      onChange={(rows) => props.setValue(rows.length > 0 ? rows : undefined)}
+    />
   </div>
 ));
 
@@ -483,6 +453,22 @@ const ComputedFieldInteractive = createEntityComponent(computedFieldEntity, (pro
     if (!formula) return null;
     return computeFormula(formula as string, getFieldValue);
   }, [formula, getFieldValue]);
+
+  // Persist the computed result onto the entity so it is SAVED with the record and
+  // renders in the report (otherwise a computed token comes out blank). Guarded so it
+  // only writes when the result actually changes → no render loop.
+  const setValue = props.setValue;
+  const currentValue = props.entity.value;
+  useEffect(() => {
+    // The entity value is stored as a string (so it round-trips through the record
+    // like every other field); coerce the numeric formula result before persisting.
+    const next =
+      computed && !computed.error && computed.result !== null
+        ? String(computed.result)
+        : undefined;
+    if (next !== currentValue) setValue(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [computed?.result, computed?.error]);
 
   return (
     <div className="space-y-1.5">

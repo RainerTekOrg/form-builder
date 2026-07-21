@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo } from "react";
-import { useInterpreterStore, InterpreterEntity } from "@coltorapps/builder-react";
+import { useInterpreterStore, InterpreterEntity, useBuilderStoreData } from "@coltorapps/builder-react";
 import type { BuilderStore, InterpreterStore, Schema } from "@coltorapps/builder";
 import { formBuilder } from "@/src/builder/form-builder";
 import type { FieldWidth } from "@/src/contract/types";
@@ -16,6 +16,9 @@ import { Eye, RotateCcw } from "lucide-react";
 interface PlaygroundProps {
   builderStore: BuilderStore<typeof formBuilder>;
   hideHeader?: boolean;
+  /** When true, the content flows at its natural height (no inner scroll) so the host
+   *  page can scroll and size the iframe (embedded fill mode). */
+  autoHeight?: boolean;
   onInterpreterReady?: (interpreter: InterpreterStore<typeof formBuilder>) => void;
 }
 
@@ -47,50 +50,89 @@ const ENTITY_DEFAULT_WIDTH: Record<string, FieldWidth> = {
   computedField: "full",
 };
 
+// A 6-column grid is the common denominator of halves, thirds, and two-thirds.
+const WIDTH_UNITS: Record<FieldWidth, number> = {
+  full: 6,
+  "two-thirds": 4,
+  half: 3,
+  third: 2,
+};
+
+// Static classes (never build these dynamically — Tailwind must see the literals).
+const SPAN_CLASS: Record<FieldWidth, string> = {
+  full: "sm:col-span-6",
+  "two-thirds": "sm:col-span-4",
+  half: "sm:col-span-3",
+  third: "sm:col-span-2",
+};
+
+const ROW_UNITS = 6;
+
 function getFieldWidth(
   entityType: string,
   attributes?: Record<string, unknown>,
 ): FieldWidth {
   const explicit = attributes?.["fieldWidth"] as FieldWidth | undefined;
-  if (explicit) return explicit;
+  if (explicit && explicit in WIDTH_UNITS) return explicit;
   return ENTITY_DEFAULT_WIDTH[entityType] ?? "half";
 }
 
-function groupFieldsByWidth(
+/**
+ * Pack fields into rows of at most 6 width-units so every field honors its
+ * chosen width (full / two-thirds / half / third) without leaving mid-row gaps.
+ * A field that would overflow the current row starts a new one; a full-width
+ * field always sits on its own row.
+ */
+export function groupFieldsByWidth(
   root: readonly string[],
   entities: Record<string, SchemaEntity>,
-): (FieldWidthEntry | FieldWidthEntry[])[] {
-  const groups: (FieldWidthEntry | FieldWidthEntry[])[] = [];
+): FieldWidthEntry[][] {
+  const rows: FieldWidthEntry[][] = [];
   let currentRow: FieldWidthEntry[] = [];
+  let used = 0;
+
+  const flush = () => {
+    if (currentRow.length > 0) {
+      rows.push(currentRow);
+      currentRow = [];
+      used = 0;
+    }
+  };
 
   for (const entityId of root) {
     const entity = entities[entityId];
     const width = getFieldWidth(entity?.type ?? "", entity?.attributes);
+    const units = WIDTH_UNITS[width];
 
     if (width === "full") {
-      if (currentRow.length > 0) {
-        groups.push(currentRow);
-        currentRow = [];
-      }
-      groups.push({ entityId, width });
-    } else {
-      currentRow.push({ entityId, width });
+      flush();
+      rows.push([{ entityId, width }]);
+      continue;
     }
+    if (used + units > ROW_UNITS) flush();
+    currentRow.push({ entityId, width });
+    used += units;
   }
 
-  if (currentRow.length > 0) {
-    groups.push(currentRow);
-  }
-
-  return groups;
+  flush();
+  return rows;
 }
 
 export function Playground({
   builderStore,
   hideHeader = false,
+  autoHeight = false,
   onInterpreterReady,
 }: PlaygroundProps) {
-  const schema = builderStore.getSchema();
+  // STABLE schema reference. useInterpreterStore memoizes the interpreter on [builder,
+  // schema] and rebuilds it — wiping every entered value — whenever the schema reference
+  // changes. builderStore.getSchema() returns a FRESH object on each render, so passing it
+  // directly recreated the interpreter on any re-render (e.g. the setIsValid that fires
+  // when a required field is filled), silently discarding what the user just entered.
+  // useBuilderStoreData caches the schema and only yields a new reference when the store
+  // actually changes (a new form is loaded / edited), which is exactly when we DO want a
+  // fresh interpreter.
+  const { schema } = useBuilderStoreData(builderStore);
   const hasEntities = schema.root.length > 0;
 
   const interpreter = useInterpreterStore(formBuilder, schema);
@@ -126,7 +168,7 @@ export function Playground({
 
   const formValueContext = useMemo(() => {
     const schemaEntities = (builderStore.getSchema() as unknown as {
-      entities: Record<string, { attributes: Record<string, unknown> }>;
+      entities: Record<string, { type: string; attributes: Record<string, unknown>; children?: string[] }>;
     }).entities;
     const keyToId = new Map<string, string>();
     for (const [id, entity] of Object.entries(schemaEntities)) {
@@ -139,6 +181,7 @@ export function Playground({
         if (!entityId) return undefined;
         return allValues[entityId];
       },
+      entities: schemaEntities,
     };
   }, [allValues, builderStore]);
 
@@ -162,8 +205,44 @@ export function Playground({
 
   const totalFields = Object.keys(rawEntities).length;
 
+  const formBody = !hasEntities ? (
+    <div className="flex h-full items-center justify-center p-8">
+      <div className="text-center max-w-xs">
+        <Eye className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+        <h3 className="text-sm font-medium mb-1">Nothing to preview</h3>
+        <p className="text-xs text-muted-foreground">Add some fields in the Build tab first.</p>
+      </div>
+    </div>
+  ) : (
+    <FormValueContext.Provider value={formValueContext}>
+      <div className="flex justify-center p-4 md:p-8">
+        <div className="w-full max-w-4xl bg-card rounded-xl border border-border shadow-sm p-5 md:p-8 space-y-6">
+          {fieldGroups.map((row, i) => {
+            const visible = row.filter((e) => visibility[e.entityId] !== false);
+            if (visible.length === 0) return null;
+            // A field left alone on its row reads better stretched to full width
+            // than sitting at a lonely partial width.
+            const singleInRow = visible.length === 1;
+            return (
+              <div key={i} className="grid grid-cols-1 gap-5 sm:grid-cols-6">
+                {visible.map((entry) => (
+                  <div
+                    key={entry.entityId}
+                    className={singleInRow ? SPAN_CLASS.full : SPAN_CLASS[entry.width]}
+                  >
+                    {renderField(entry.entityId)}
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </FormValueContext.Provider>
+  );
+
   return (
-    <main className="flex h-full flex-col overflow-hidden w-full">
+    <main className={autoHeight ? "flex flex-col w-full" : "flex h-full flex-col overflow-hidden w-full"}>
       {!hideHeader && (
         <div className="flex items-center justify-between border-b px-4 py-2 shrink-0">
           <div className="flex items-center gap-2">
@@ -189,51 +268,11 @@ export function Playground({
         </div>
       )}
 
-      <ScrollArea className="flex-1 min-h-0">
-        {!hasEntities ? (
-          <div className="flex h-full items-center justify-center p-8">
-            <div className="text-center max-w-xs">
-              <Eye className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-              <h3 className="text-sm font-medium mb-1">Nothing to preview</h3>
-              <p className="text-xs text-muted-foreground">
-                Add some fields in the Build tab first.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <FormValueContext.Provider value={formValueContext}>
-            <div className="flex justify-center p-4 md:p-8">
-              <div className="w-full max-w-4xl bg-card rounded-xl border border-border shadow-sm p-5 md:p-8 space-y-6">
-                {fieldGroups.map((group, i) => {
-                  if (Array.isArray(group)) {
-                    const visible = group.filter((e) => visibility[e.entityId] !== false);
-                    if (visible.length === 0) return null;
-                    const singleInRow = visible.length === 1;
-                    return (
-                      <div
-                        key={i}
-                        className="grid gap-5 sm:grid-cols-2"
-                      >
-                        {visible.map((entry) => (
-                          <div key={entry.entityId} className={singleInRow ? "sm:col-span-2" : ""}>
-                            {renderField(entry.entityId)}
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  }
-                  if (visibility[group.entityId] === false) return null;
-                  return (
-                    <div key={group.entityId}>
-                      {renderField(group.entityId)}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </FormValueContext.Provider>
-        )}
-      </ScrollArea>
+      {autoHeight ? (
+        <div className="w-full">{formBody}</div>
+      ) : (
+        <ScrollArea className="flex-1 min-h-0">{formBody}</ScrollArea>
+      )}
     </main>
   );
 }

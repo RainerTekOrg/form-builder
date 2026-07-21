@@ -27,6 +27,7 @@ type LoadFillHandler = (payload: FillPayload) => void;
 type SetConfigHandler = (payload: { allowedFieldTypes?: string[]; theme?: "light" | "dark"; mode?: "build" | "preview" }) => void;
 type ForeignOriginHandler = (origin: string) => void;
 type TriggerSaveHandler = () => void;
+type RequestSubmitHandler = () => void;
 
 export interface Bridge {
   attach: () => () => void;
@@ -37,6 +38,7 @@ export interface Bridge {
   emitReady: () => boolean;
   emitDirtyState: (isDirty: boolean) => boolean;
   emitValuesChanged: (values: Record<string, unknown>) => boolean;
+  emitContentHeight: (height: number) => boolean;
   getParentOrigin: () => string | null;
 }
 
@@ -87,6 +89,7 @@ export function createBridge(
   onSetConfig?: SetConfigHandler,
   onForeignOrigin?: ForeignOriginHandler,
   onTriggerSave?: TriggerSaveHandler,
+  onRequestSubmit?: RequestSubmitHandler,
 ): Bridge {
   let parentOrigin: string | null = null;
 
@@ -124,6 +127,9 @@ export function createBridge(
         break;
       case "TRIGGER_SAVE":
         onTriggerSave?.();
+        break;
+      case "REQUEST_SUBMIT":
+        onRequestSubmit?.();
         break;
     }
   }
@@ -200,6 +206,15 @@ export function createBridge(
     return true;
   }
 
+  function emitContentHeight(height: number): boolean {
+    if (!parentOrigin) {
+      return false;
+    }
+    const message: OutboundMessage = { type: "CONTENT_HEIGHT", payload: { height } };
+    window.parent.postMessage(message, parentOrigin);
+    return true;
+  }
+
   function attach() {
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
@@ -214,6 +229,7 @@ export function createBridge(
     emitReady,
     emitDirtyState,
     emitValuesChanged,
+    emitContentHeight,
     getParentOrigin: () => parentOrigin,
   };
 }

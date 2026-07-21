@@ -7,7 +7,6 @@ import {
   CheckSquare,
   Calendar,
   FileUp,
-  Pen,
   Layers,
   Repeat,
   FunctionSquare,
@@ -54,7 +53,11 @@ export const fieldTypeGroups: FieldGroup[] = [
     label: "Media",
     items: [
       { widget: "file", entity: "fileField", label: "File Upload", icon: FileUp },
-      { widget: "signature", entity: "signatureField", label: "Signature", icon: Pen },
+      // Signature is intentionally NOT offered here. Approver signatures are now a
+      // template-builder concern (data-bound SignatureSlot resolved at approval),
+      // not a form field. The signatureField entity + serializer support remain so
+      // any EXISTING form that already contains one still loads — we only stop
+      // authoring new ones. See signature-integration-plan.md (S5).
     ],
   },
   {
