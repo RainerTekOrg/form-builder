@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo } from "react";
-import { useInterpreterStore, InterpreterEntity } from "@coltorapps/builder-react";
+import { useInterpreterStore, InterpreterEntity, useBuilderStoreData } from "@coltorapps/builder-react";
 import type { BuilderStore, InterpreterStore, Schema } from "@coltorapps/builder";
 import { formBuilder } from "@/src/builder/form-builder";
 import type { FieldWidth } from "@/src/contract/types";
@@ -124,7 +124,15 @@ export function Playground({
   autoHeight = false,
   onInterpreterReady,
 }: PlaygroundProps) {
-  const schema = builderStore.getSchema();
+  // STABLE schema reference. useInterpreterStore memoizes the interpreter on [builder,
+  // schema] and rebuilds it — wiping every entered value — whenever the schema reference
+  // changes. builderStore.getSchema() returns a FRESH object on each render, so passing it
+  // directly recreated the interpreter on any re-render (e.g. the setIsValid that fires
+  // when a required field is filled), silently discarding what the user just entered.
+  // useBuilderStoreData caches the schema and only yields a new reference when the store
+  // actually changes (a new form is loaded / edited), which is exactly when we DO want a
+  // fresh interpreter.
+  const { schema } = useBuilderStoreData(builderStore);
   const hasEntities = schema.root.length > 0;
 
   const interpreter = useInterpreterStore(formBuilder, schema);

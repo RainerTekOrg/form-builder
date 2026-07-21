@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { InterpreterStore, Schema } from "@coltorapps/builder";
+import type { BuilderStore, InterpreterStore, Schema } from "@coltorapps/builder";
 import { useBuilderStore } from "@coltorapps/builder-react";
 import { formBuilder } from "@/src/builder/form-builder";
 import { deserialize } from "@/src/serializer/deserialize";
@@ -17,6 +17,54 @@ import type {
   FormPayload,
   GroupPayload,
 } from "@/src/contract/types";
+
+/**
+ * Required fields whose value is still empty. Shared by the live validity gate and the
+ * submit guard so both agree. Returns entity id + label so the caller can flag each field.
+ *
+ * Required-ness is NOT enforced by an entity's own `validate` (e.g. a select validates as
+ * `z.string().optional()`), so an empty required field would otherwise pass client-side and
+ * only be rejected by the backend with a vague message. This is the single source of truth.
+ */
+function collectMissingRequired(
+  interpreter: InterpreterStore<typeof formBuilder>,
+  builderStore: BuilderStore<typeof formBuilder>,
+  topLevelRequired: string[],
+): Array<{ entityId: string; label: string }> {
+  const allValues = interpreter.getEntitiesValues();
+  const entities = (builderStore.getSchema() as Schema<typeof formBuilder> as unknown as {
+    entities: Record<string, { type: string; attributes: Record<string, unknown> }>;
+  }).entities;
+
+  const isEmpty = (v: unknown) => v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0);
+  const labelOf = (e: { attributes: Record<string, unknown> }) =>
+    (e.attributes.label as string) || (e.attributes.key as string) || "This field";
+
+  const keyToId = new Map<string, string>();
+  for (const [id, ent] of Object.entries(entities)) {
+    const k = ent.attributes.key as string | undefined;
+    if (k) keyToId.set(k, id);
+  }
+
+  const missing: Array<{ entityId: string; label: string }> = [];
+  const seen = new Set<string>();
+  // Top-level required (from the JSON schema `required` array).
+  for (const propName of topLevelRequired) {
+    const entityId = keyToId.get(propName);
+    if (!entityId || seen.has(entityId)) continue;
+    if (isEmpty(allValues[entityId])) { missing.push({ entityId, label: labelOf(entities[entityId]) }); seen.add(entityId); }
+  }
+  // Nested required (a field's own `required` attribute — sections / repeating children).
+  for (const [entityId, entity] of Object.entries(entities)) {
+    if (entity.type === "section" || entity.type === "repeating") continue;
+    const req = entity.attributes.required;
+    if ((req === true || req === "true") && !seen.has(entityId) && isEmpty(allValues[entityId])) {
+      missing.push({ entityId, label: labelOf(entity) });
+      seen.add(entityId);
+    }
+  }
+  return missing;
+}
 
 export function FillPage({ embed = false }: { embed?: boolean }) {
   const builderStore = useBuilderStore(formBuilder);
@@ -116,51 +164,15 @@ export function FillPage({ embed = false }: { embed?: boolean }) {
     const update = () => {
       const fillPayload = fillPayloadRef.current;
       const topLevelRequired = fillPayload?.schema?.required ?? [];
-      const allValues = interpreter.getEntitiesValues();
-      const allErrors = interpreter.getEntitiesErrors();
-      const entities = (builderStore.getSchema() as Schema<typeof formBuilder> as unknown as {
-        entities: Record<string, { type: string; attributes: Record<string, unknown>; children?: string[] }>;
-      }).entities;
 
-      const hasErrors = Object.values(allErrors).some((e) => Boolean(e));
+      const hasErrors = Object.values(interpreter.getEntitiesErrors()).some((e) => Boolean(e));
       if (hasErrors) {
         setIsValid(false);
         return;
       }
 
-      // Build key -> entityId map once
-      const keyToId = new Map<string, string>();
-      for (const [id, ent] of Object.entries(entities)) {
-        const k = ent.attributes.key as string | undefined;
-        if (k) keyToId.set(k, id);
-      }
-
-      // Check top-level required fields
-      const missingTopLevel = topLevelRequired.some((propName) => {
-        const entityId = keyToId.get(propName);
-        if (!entityId) return false;
-        const value = allValues[entityId];
-        return value === undefined || value === null || value === "";
-      });
-      if (missingTopLevel) {
-        setIsValid(false);
-        return;
-      }
-
-      // Check nested required fields (inside sections / repeating groups)
-      let nestedMissing = false;
-      for (const [entityId, entity] of Object.entries(entities)) {
-        if (entity.type === "section" || entity.type === "repeating") continue;
-        if (entity.attributes.required === true || entity.attributes.required === "true") {
-          const value = allValues[entityId];
-          if (value === undefined || value === null || value === "") {
-            nestedMissing = true;
-            break;
-          }
-        }
-      }
-
-      setIsValid(!nestedMissing);
+      // One source of truth for "required but empty" — shared with the submit guard.
+      setIsValid(collectMissingRequired(interpreter, builderStore, topLevelRequired).length === 0);
     };
 
     update();
@@ -201,6 +213,32 @@ export function FillPage({ embed = false }: { embed?: boolean }) {
       return;
     }
 
+    // Enforce REQUIRED before value-format validation: entity validators are `optional`,
+    // so an empty required field passes validateEntitiesValues. Without this the host Save
+    // would emit an incomplete record and the backend would bounce it with a vague error.
+    // Name the missing fields and scroll to the first — but DON'T call setEntityError here:
+    // a manually-set error marks the entity unprocessable, which then swallows the user's
+    // next selection. The field's own onChange re-validates and shows its inline error.
+    const missingRequired = collectMissingRequired(
+      interpreter,
+      builderStore,
+      fillPayload.schema?.required ?? [],
+    );
+    if (missingRequired.length > 0) {
+      if (typeof document !== "undefined") {
+        document.getElementById(missingRequired[0].entityId)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      const names = missingRequired.map((m) => m.label);
+      toast.error(
+        names.length === 1
+          ? `${names[0]} is required.`
+          : `Please fill required field${names.length > 1 ? "s" : ""}: ${names.slice(0, 4).join(", ")}${names.length > 4 ? "…" : ""}`,
+      );
+      return;
+    }
+
+    // Field-level format validation (min/max/pattern/email…). This is the library's own
+    // validation, which clears itself when the value is corrected.
     const result = await interpreter.validateEntitiesValues();
     if (!result.success) {
       toast.error("Please fix the errors above");
