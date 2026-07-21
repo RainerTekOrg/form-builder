@@ -179,25 +179,48 @@ export function FillPage({ embed = false }: { embed?: boolean }) {
 
     // Debounced VALUES_CHANGED so the host can draft-autosave without a save-per-keystroke.
     let valuesTimer: ReturnType<typeof setTimeout> | null = null;
-    const emitValuesDebounced = () => {
-      if (valuesTimer) clearTimeout(valuesTimer);
-      valuesTimer = setTimeout(() => {
-        try {
-          const { values } = extractValues(interpreter, builderStore);
-          bridgeRef.current?.emitValuesChanged(values);
-        } catch {
-          // ignore — autosave is best-effort
-        }
-      }, 1000);
+    let dirtySinceEmit = false;
+
+    // Emit the current values NOW and cancel any pending debounce. Called both by the
+    // debounce timer and by the "about to leave" flush below, so a value entered <1s
+    // before the user navigates away isn't lost with the un-fired timer.
+    const emitNow = () => {
+      if (valuesTimer) { clearTimeout(valuesTimer); valuesTimer = null; }
+      if (!dirtySinceEmit) return;
+      dirtySinceEmit = false;
+      try {
+        const { values } = extractValues(interpreter, builderStore);
+        bridgeRef.current?.emitValuesChanged(values);
+      } catch {
+        // ignore — autosave is best-effort
+      }
     };
+    const emitValuesDebounced = () => {
+      dirtySinceEmit = true;
+      if (valuesTimer) clearTimeout(valuesTimer);
+      valuesTimer = setTimeout(emitNow, 1000);
+    };
+
+    // Flush the pending draft the moment focus leaves the form or the page is being
+    // hidden/unloaded — covers clicking the host's Back/Save button (focus leaves the
+    // iframe → window blur), switching/closing the tab, and full navigation. Without this
+    // the last edit could sit in the un-fired 1s debounce and never reach the host.
+    const flushOnLeave = () => emitNow();
+    const onVisibility = () => { if (document.visibilityState === "hidden") emitNow(); };
 
     const unsub = interpreter.subscribe(() => {
       update();
       emitValuesDebounced();
     });
+    window.addEventListener("pagehide", flushOnLeave);
+    window.addEventListener("blur", flushOnLeave);
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
       unsub();
-      if (valuesTimer) clearTimeout(valuesTimer);
+      window.removeEventListener("pagehide", flushOnLeave);
+      window.removeEventListener("blur", flushOnLeave);
+      document.removeEventListener("visibilitychange", onVisibility);
+      emitNow(); // final flush on teardown (e.g. the host reloaded/replaced the form)
     };
     // `interpreterAttached` is included so validity wires up even if the interpreter
     // attaches AFTER this effect first runs (otherwise the subscription is never set
