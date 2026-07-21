@@ -1,6 +1,7 @@
 import type { BuilderStore, Schema } from "@coltorapps/builder";
 import type { FillPayload, UiSchema, UiSchemaEntry } from "@/src/contract/types";
 import { formBuilder } from "@/src/builder/form-builder";
+import { collectRepeatingDescendantIds } from "@/src/serializer/repeating-descendants";
 
 export interface InterpreterLike {
   setEntityValue(entityId: string, value: unknown): void;
@@ -39,9 +40,11 @@ export function applyDefaults(
   // Apply builder-defined default values for fields not overridden by host defaults
   const seenKeys = new Set(Object.keys(payload.defaults ?? {}));
   const schemaEntities = (schema as unknown as {
-    entities: Record<string, { attributes: Record<string, unknown> }>;
+    entities: Record<string, { type: string; attributes: Record<string, unknown>; children?: string[] }>;
   }).entities;
+  const repeatingDescendants = collectRepeatingDescendantIds(schemaEntities);
   for (const [entityId, entity] of Object.entries(schemaEntities)) {
+    if (repeatingDescendants.has(entityId)) continue; // belongs to a row, not the top level
     const propertyName = entity.attributes.key as string | undefined;
     if (!propertyName || seenKeys.has(propertyName)) continue;
     const defaultValue = entity.attributes.defaultValue;
@@ -66,10 +69,15 @@ export function buildKeyToEntityMap(
 ): Map<string, string> {
   const map = new Map<string, string>();
   const entities = (schema as unknown as {
-    entities: Record<string, { attributes: Record<string, unknown> }>;
+    entities: Record<string, { type: string; attributes: Record<string, unknown>; children?: string[] }>;
   }).entities;
 
+  // Repeating children get their values from the group's row array, not from a top-level
+  // default — never map a (possibly stale/leaked) dotted key onto one of them.
+  const repeatingDescendants = collectRepeatingDescendantIds(entities);
+
   for (const entityId of Object.keys(entities)) {
+    if (repeatingDescendants.has(entityId)) continue;
     const entity = entities[entityId];
     const propertyName = entity.attributes.key as string | undefined;
     if (!propertyName) continue;
